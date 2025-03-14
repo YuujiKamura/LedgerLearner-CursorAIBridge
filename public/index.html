@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor AI 資格学習支援アプリ</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            min-height: 120px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #response-container {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .response-box {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            white-space: pre-wrap;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #7f8c8d;
+            margin: 20px 0;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-pending {
+            background-color: #f39c12;
+        }
+        .status-answered {
+            background-color: #2ecc71;
+        }
+        .chat-history {
+            margin-top: 40px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .chat-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .question {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .answer {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        /* タブUI用のスタイル */
+        .tabs-navigation {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin: 20px 0;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            color: #777; /* 未選択の時の中程度のグレー */
+        }
+        .tab-btn:hover {
+            background-color: #f8f9fa;
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #3498db;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .tab-panel {
+            display: none;
+            padding: 15px 0;
+        }
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* ダークテーマのスタイル */
+        body.dark-theme {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        
+        body.dark-theme .container {
+            background-color: #34495e;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-theme textarea,
+        body.dark-theme input,
+        body.dark-theme select {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border-color: #7f8c8d;
+        }
+        
+        body.dark-theme .answer,
+        body.dark-theme .response-box {
+            background-color: #2c3e50;
+        }
+        
+        body.dark-theme .tab-btn {
+            color: #aaa; /* ダークテーマでも読みやすい中程度のグレー */
+        }
+        
+        body.dark-theme .tab-btn:hover {
+            background-color: #2c3e50;
+        }
+        
+        body.dark-theme .tab-btn.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+        
+        /* 削除ボタンのスタイル */
+        .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+            width: auto;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        .chat-controls {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cursor AI 資格学習支援アプリ</h1>
+        
+        <div class="form-group">
+            <label for="question">質問内容:</label>
+            <textarea id="question" placeholder="AIに質問したいことを入力してください..."></textarea>
+            <!-- コンテキスト情報を格納する隠しフィールド -->
+            <input type="hidden" id="question-context" value="">
+        </div>
+        
+        <button id="submit-btn">送信</button>
+        
+        <div id="status-container" style="display: none;" class="status-indicator">
+            <div id="status-dot" class="status-dot status-pending"></div>
+            <div id="status-text">質問を受付中...</div>
+        </div>
+        
+        <div id="loading-indicator" class="loading" style="display: none;">
+            回答を待っています...
+        </div>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        
+        <div id="response-container" style="display: none;">
+            <h3>Cursor AIからの回答:</h3>
+            <div id="ai-response" class="response-box"></div>
+        </div>
+        
+        <!-- タブUI -->
+        <div class="tabs-navigation">
+            <button class="tab-btn active" data-tab="bookkeeping">簿記問題</button>
+            <button class="tab-btn" data-tab="history">履歴</button>
+            <button class="tab-btn" data-tab="stats">統計</button>
+            <button class="tab-btn" data-tab="settings">設定</button>
+        </div>
+        
+        <div class="tab-content">
+            <!-- 履歴タブ (元の履歴表示を移動) -->
+            <div id="history-tab" class="tab-panel">
+                <h3>過去の質問と回答:</h3>
+                <div id="chat-history"></div>
+            </div>
+            
+            <!-- 統計タブ -->
+            <div id="stats-tab" class="tab-panel">
+                <h3>統計情報</h3>
+                <div class="stats-container">
+                    <p>質問数: <span id="question-count">0</span></p>
+                    <p>回答済み: <span id="answered-count">0</span></p>
+                    <p>平均応答時間: <span id="avg-response-time">-</span></p>
+                </div>
+            </div>
+            
+            <!-- 設定タブ -->
+            <div id="settings-tab" class="tab-panel">
+                <h3>設定</h3>
+                <div class="form-group">
+                    <label for="auto-refresh">自動更新間隔 (秒):</label>
+                    <input type="number" id="auto-refresh" min="1" max="30" value="3">
+                </div>
+                <div class="form-group">
+                    <label>表示テーマ:</label>
+                    <select id="theme-selector">
+                        <option value="light">ライト</option>
+                        <option value="dark">ダーク</option>
+                        <option value="system">システム設定に合わせる</option>
+                    </select>
+                </div>
+                <button id="save-settings" class="btn btn-primary">設定を保存</button>
+                
+                <hr style="margin: 20px 0;">
+                <h3>サーバー管理</h3>
+                <div class="form-group">
+                    <button id="restart-server" class="btn btn-warning">サーバーを再起動</button>
+                    <p class="help-text">※ サーバーに問題がある場合や、変更を適用するために使用してください。</p>
+                </div>
+            </div>
+            
+            <!-- 簿記問題タブ -->
+            <div id="bookkeeping-tab" class="tab-panel active">
+                <h3>簿記3級仕訳問題</h3>
+                <div class="bookkeeping-container">
+                    <div class="problem-list">
+                        <!-- 問題リストが JavaScript によって表示されます -->
+                        <p>問題を読み込み中...</p>
+                    </div>
+                    <div class="problem-view">
+                        <!-- 問題の詳細が JavaScript によって表示されます -->
+                        <p>問題を選択してください。</p>
+                    </div>
+                    <div class="explanation">
+                        <!-- 解説が JavaScript によって表示されます -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const submitBtn = document.getElementById('submit-btn');
+            const questionInput = document.getElementById('question');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const responseContainer = document.getElementById('response-container');
+            const aiResponse = document.getElementById('ai-response');
+            const errorMessage = document.getElementById('error-message');
+            const statusContainer = document.getElementById('status-container');
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const historyContainer = document.getElementById('chat-history');
+            
+            // タブ切り替え用の変数とイベントリスナーを追加
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+            
+            // タブ切り替え機能
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // アクティブなタブボタンを更新
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // タブパネルを切り替え
+                    const tabId = button.getAttribute('data-tab');
+                    tabPanels.forEach(panel => panel.classList.remove('active'));
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            let currentQuestionId = null;
+            let pollingInterval = null;
+            
+            // 初期ロード時に過去の質問と回答を取得
+            loadChatHistory();
+            
+            submitBtn.addEventListener('click', async () => {
+                const question = questionInput.value.trim();
+                const questionContext = document.getElementById('question-context').value;
+                
+                if (!question) {
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = '質問を入力してください。';
+                    return;
+                }
+                
+                // コンテキスト情報があれば、フォーマットして質問に追加
+                let finalQuestion = question;
+                if (questionContext) {
+                    finalQuestion = `#context: ${questionContext}\n\n${question}`;
+                    // コンテキスト情報を使用後にクリア
+                    document.getElementById('question-context').value = '';
+                }
+                
+                errorMessage.style.display = 'none';
+                submitBtn.disabled = true;
+                loadingIndicator.style.display = 'block';
+                statusContainer.style.display = 'flex';
+                responseContainer.style.display = 'none';
+                
+                try {
+                    const response = await fetch('/api/ask', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ question: finalQuestion })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // 質問IDを保存
+                        currentQuestionId = data.questionId;
+                        
+                        // 質問の状態表示
+                        statusContainer.style.display = 'flex';
+                        statusDot.className = 'status-dot status-pending';
+                        statusText.textContent = '質問を受け付けました。回答を待っています...';
+                        
+                        // ポーリングを開始
+                        startPolling(currentQuestionId);
+                    } else {
+                        errorMessage.textContent = data.error || 'エラーが発生しました。もう一度お試しください。';
+                        errorMessage.style.display = 'block';
+                        submitBtn.disabled = false;
+                        loadingIndicator.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorMessage.textContent = 'サーバーとの通信中にエラーが発生しました。';
+                    errorMessage.style.display = 'block';
+                    submitBtn.disabled = false;
+                    loadingIndicator.style.display = 'none';
+                }
+            });
+            
+            // 質問の状態を定期的に確認
+            function startPolling(questionId) {
+                // 前のポーリングをクリア
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                }
+                
+                // ポーリング間隔を設定から取得
+                const interval = getPollingInterval();
+                
+                // 定期的に確認
+                pollingInterval = setInterval(async () => {
+                    try {
+                        const response = await fetch(`/api/check-answer/${questionId}`);
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            if (data.status === 'answered' && data.answer) {
+                                // 回答が来たらポーリング停止
+                                clearInterval(pollingInterval);
+                                
+                                // UIを更新
+                                aiResponse.innerHTML = data.answer.replace(/\n/g, '<br>');
+                                responseContainer.style.display = 'block';
+                                loadingIndicator.style.display = 'none';
+                                statusDot.className = 'status-dot status-answered';
+                                statusText.textContent = '回答が届きました！';
+                                
+                                // フォームをリセット
+                                submitBtn.disabled = false;
+                                questionInput.value = '';
+                                
+                                // 履歴を更新
+                                loadChatHistory();
+                            }
+                        } else {
+                            console.error('ポーリングエラー:', data.error);
+                        }
+                    } catch (error) {
+                        console.error('ポーリング中のエラー:', error);
+                    }
+                }, interval);
+            }
+            
+            // チャット履歴を読み込む関数
+            async function loadChatHistory() {
+                try {
+                    const response = await fetch('/api/chat-history');
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        const historyContainer = document.getElementById('chat-history');
+                        historyContainer.innerHTML = '';
+                        
+                        // 新しい順に表示するために配列を逆順にする
+                        const reversedData = [...data].reverse();
+                        
+                        reversedData.forEach(item => {
+                            const chatItem = document.createElement('div');
+                            chatItem.className = 'chat-item';
+                            chatItem.id = `chat-item-${item.questionId}`;
+                            
+                            // 質問部分
+                            const questionBubble = createChatBubble(item.question, true);
+                            chatItem.appendChild(questionBubble);
+                            
+                            // 回答部分（あれば表示、なければ回答待ちと表示）
+                            if (item.status === 'answered' && item.answer) {
+                                const answerBubble = createChatBubble(item.answer, false);
+                                chatItem.appendChild(answerBubble);
+                            } else {
+                                const pendingAnswer = document.createElement('div');
+                                pendingAnswer.className = 'chat-bubble assistant pending';
+                                
+                                const header = document.createElement('div');
+                                header.className = 'chat-header';
+                                header.textContent = 'アシスタント';
+                                
+                                const content = document.createElement('div');
+                                content.className = 'chat-content';
+                                content.textContent = '(回答待ち)';
+                                content.style.fontStyle = 'italic';
+                                content.style.color = '#95a5a6';
+                                
+                                pendingAnswer.appendChild(header);
+                                pendingAnswer.appendChild(content);
+                                chatItem.appendChild(pendingAnswer);
+                            }
+                            
+                            // タイムスタンプ
+                            const timestamp = document.createElement('div');
+                            timestamp.className = 'timestamp';
+                            const date = new Date(item.timestamp);
+                            timestamp.textContent = date.toLocaleString('ja-JP');
+                            chatItem.appendChild(timestamp);
+                            
+                            // 操作ボタン
+                            const chatControls = document.createElement('div');
+                            chatControls.className = 'chat-controls';
+                            
+                            // 削除ボタン
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'delete-btn';
+                            deleteBtn.textContent = '上記の質問を削除';
+                            deleteBtn.onclick = () => deleteChat(item.questionId);
+                            chatControls.appendChild(deleteBtn);
+                            
+                            chatItem.appendChild(chatControls);
+                            
+                            // data-id属性を追加
+                            chatItem.setAttribute('data-id', item.questionId);
+                            
+                            historyContainer.appendChild(chatItem);
+                        });
+                    } else {
+                        console.error('履歴取得エラー:', data.error);
+                    }
+                } catch (error) {
+                    console.error('履歴取得中のエラー:', error);
+                }
+            }
+            
+            // 統計情報を更新する関数
+            function updateStats(chatHistory) {
+                if (!chatHistory) return;
+                
+                const questionCount = document.getElementById('question-count');
+                const answeredCount = document.getElementById('answered-count');
+                const avgResponseTime = document.getElementById('avg-response-time');
+                
+                // 質問数と回答済み数をカウント
+                const total = chatHistory.length;
+                const answered = chatHistory.filter(item => item.status === 'answered').length;
+                
+                // 応答時間を計算（回答のあるものだけ）
+                let totalResponseTime = 0;
+                let validResponses = 0;
+                
+                chatHistory.forEach(item => {
+                    if (item.status === 'answered' && item.timestamp && item.answeredAt) {
+                        const askTime = new Date(item.timestamp);
+                        const answerTime = new Date(item.answeredAt);
+                        const responseTime = (answerTime - askTime) / 1000; // 秒単位
+                        
+                        if (responseTime > 0) {
+                            totalResponseTime += responseTime;
+                            validResponses++;
+                        }
+                    }
+                });
+                
+                // 統計を表示
+                questionCount.textContent = total;
+                answeredCount.textContent = answered;
+                
+                if (validResponses > 0) {
+                    const avg = Math.round(totalResponseTime / validResponses);
+                    avgResponseTime.textContent = `${avg} 秒`;
+                } else {
+                    avgResponseTime.textContent = '-';
+                }
+            }
+            
+            // ポーリング間隔を設定から取得
+            function getPollingInterval() {
+                const refreshInput = document.getElementById('auto-refresh');
+                const seconds = parseInt(refreshInput.value) || 3;
+                return seconds * 1000; // ミリ秒に変換
+            }
+            
+            // 設定保存ボタンのイベントリスナー
+            document.getElementById('save-settings').addEventListener('click', () => {
+                const theme = document.getElementById('theme-selector').value;
+                // テーマの適用
+                if (theme === 'dark') {
+                    document.body.classList.add('dark-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                }
+                
+                // 設定が保存されたことを通知
+                alert('設定が保存されました');
+            });
+            
+            // サーバー再起動ボタンのイベントリスナー
+            document.getElementById('restart-server').addEventListener('click', async () => {
+                if (confirm('サーバーを再起動しますか？現在の作業内容は保存されます。')) {
+                    try {
+                        // ステータスコンテナを作成
+                        const statusContainer = document.createElement('div');
+                        statusContainer.className = 'status-message';
+                        statusContainer.style.padding = '10px';
+                        statusContainer.style.backgroundColor = '#fff3cd';
+                        statusContainer.style.color = '#856404';
+                        statusContainer.style.borderRadius = '4px';
+                        statusContainer.style.marginTop = '10px';
+                        statusContainer.style.marginBottom = '15px';
+                        
+                        // ターミナル風のコンソール出力エリアを作成
+                        const terminalOutput = document.createElement('div');
+                        terminalOutput.className = 'terminal-output';
+                        terminalOutput.style.backgroundColor = '#2b2b2b';
+                        terminalOutput.style.color = '#e6e6e6';
+                        terminalOutput.style.fontFamily = 'monospace';
+                        terminalOutput.style.padding = '10px';
+                        terminalOutput.style.borderRadius = '4px';
+                        terminalOutput.style.height = '150px';
+                        terminalOutput.style.overflowY = 'auto';
+                        terminalOutput.style.whiteSpace = 'pre-wrap';
+                        terminalOutput.style.fontSize = '14px';
+                        terminalOutput.style.marginTop = '10px';
+                        
+                        // ステータスメッセージを設定
+                        statusContainer.textContent = 'サーバー再起動処理を開始しました';
+                        document.getElementById('settings-tab').appendChild(statusContainer);
+                        document.getElementById('settings-tab').appendChild(terminalOutput);
+                        
+                        // ターミナル出力に新しいログを追加する関数
+                        function addLog(message, type = 'info') {
+                            const timestamp = new Date().toLocaleTimeString();
+                            let color = '#e6e6e6'; // デフォルトは白
+                            
+                            if (type === 'error') {
+                                color = '#ff6b6b'; // エラーは赤
+                            } else if (type === 'success') {
+                                color = '#69ff94'; // 成功は緑
+                            } else if (type === 'warning') {
+                                color = '#ffc400'; // 警告は黄色
+                            }
+                            
+                            terminalOutput.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+                            terminalOutput.scrollTop = terminalOutput.scrollHeight; // 自動スクロール
+                        }
+                        
+                        // 初期ログ
+                        addLog('ユーザーからサーバー再起動リクエストを受け付けました');
+                        addLog('サーバー再起動APIを呼び出します: /api/restart-server');
+                        
+                        // サーバーの状態をチェックする機能を定義（複数箇所で再利用するため）
+                        let checkIntervalInstance = null;
+                        let isServerResponding = false;
+                        
+                        // サーバー状態のチェック関数を定義
+                        const checkServerStatus = async (retryCount, maxRetries, onSuccess, onFailure) => {
+                            try {
+                                if (retryCount > maxRetries) {
+                                    if (typeof onFailure === 'function') {
+                                        onFailure();
+                                    }
+                                    return;
+                                }
+
+                                // APIエンドポイントにリクエストを送信（キャッシュなし）
+                                const statusCheck = await fetch('/api/problems', {
+                                    method: 'GET',
+                                    headers: { 'Cache-Control': 'no-cache' }
+                                });
+                                
+                                if (statusCheck.ok) {
+                                    // サーバーが応答している
+                                    isServerResponding = true;
+                                    if (typeof onSuccess === 'function') {
+                                        onSuccess();
+                                    }
+                                } else {
+                                    // エラー応答だが、少なくともサーバーは実行中
+                                    if (retryCount % 5 === 0) {
+                                        addLog(`サーバーからエラー応答がありますが、再起動プロセスは継続中です (${retryCount}/${maxRetries})`, 'warning');
+                                    }
+                                    throw new Error('Server error response');
+                                }
+                            } catch (error) {
+                                // 接続エラー（サーバーがまだ起動中または再起動中）
+                                if (retryCount <= 3) {
+                                    addLog('サーバーが再起動中です...', 'warning');
+                                } else if (retryCount % 5 === 0) {
+                                    addLog(`再接続を試みています... (${retryCount}/${maxRetries})`, 'warning');
+                                }
+                                
+                                // 再試行カウントを増やして次の実行をスケジュール
+                                setTimeout(() => {
+                                    checkServerStatus(retryCount + 1, maxRetries, onSuccess, onFailure);
+                                }, 1000);
+                            }
+                        };
+
+                        // サーバー監視の開始（定期的なチェック）
+                        const startServerMonitoring = () => {
+                            // 初期状態をリセット
+                            isServerResponding = false;
+                            if (checkIntervalInstance) {
+                                clearInterval(checkIntervalInstance);
+                            }
+                            
+                            // 最大再試行回数
+                            const maxRetries = 30; // 30秒
+                            let retryCount = 0;
+                            
+                            // サーバーからの応答成功時の処理
+                            const onServerSuccess = () => {
+                                if (checkIntervalInstance) {
+                                    clearInterval(checkIntervalInstance);
+                                    checkIntervalInstance = null;
+                                }
+                                
+                                addLog('サーバーからの応答を検出しました！', 'success');
+                                addLog('サーバーが正常に再起動されました', 'success');
+                                addLog('5秒後にページをリロードします...', 'info');
+                                
+                                // 成功メッセージを表示
+                                statusContainer.textContent = 'サーバーが再起動しました。5秒後にページを更新します...';
+                                statusContainer.style.backgroundColor = '#d4edda';
+                                statusContainer.style.color = '#155724';
+                                
+                                // 5秒後にページを更新
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 5000);
+                            };
+                            
+                            // サーバー応答タイムアウト時の処理
+                            const onServerTimeout = () => {
+                                addLog(`最大再試行回数(${maxRetries}回)に達しました。手動で更新してください。`, 'error');
+                                statusContainer.textContent = 'サーバー再起動タイムアウト。ページを手動で更新してください。';
+                                statusContainer.style.backgroundColor = '#f8d7da';
+                                statusContainer.style.color = '#721c24';
+                            };
+                            
+                            // 即座に最初のチェックを実行
+                            checkServerStatus(retryCount, maxRetries, onServerSuccess, onServerTimeout);
+                            
+                            // 状態をポーリングするインターバルを設定（安全策として）
+                            checkIntervalInstance = setInterval(() => {
+                                if (!isServerResponding) {
+                                    retryCount++;
+                                    if (retryCount <= maxRetries) {
+                                        if (retryCount % 5 === 0) {
+                                            addLog(`サーバー応答待機中... (${retryCount}/${maxRetries})`, 'warning');
+                                        }
+                                    } else {
+                                        clearInterval(checkIntervalInstance);
+                                        onServerTimeout();
+                                    }
+                                } else {
+                                    clearInterval(checkIntervalInstance);
+                                }
+                            }, 1000);
+                        };
+                        
+                        // サーバー再起動APIを呼び出す（エラーハンドリング改善）
+                        try {
+                            const response = await fetch('/api/restart-server', {
+                                method: 'POST'
+                            });
+                            
+                            // 正常応答の場合
+                            if (response.ok) {
+                                try {
+                                    const data = await response.json();
+                                    addLog(`サーバーからの応答: ${data.message || 'サーバー再起動処理を開始しました'}`, 'success');
+                                } catch (jsonError) {
+                                    // JSONパースエラーも正常として扱う（サーバーが途中で切断した可能性）
+                                    addLog('サーバーから応答を受信しましたが、再起動プロセス中に切断されました', 'warning');
+                                }
+                                
+                                // サーバーが再起動中であることを表示
+                                statusContainer.textContent = 'サーバー再起動中...';
+                                
+                                // サーバー状態の監視を開始
+                                addLog('再起動プロセスはバックグラウンドで実行されています', 'info');
+                                addLog('サーバーが再起動するまで待機します...', 'info');
+                                
+                                // サーバーの状態を監視開始
+                                startServerMonitoring();
+                            } else {
+                                // エラー応答の場合でも、再起動プロセスは開始されている可能性がある
+                                try {
+                                    const errorData = await response.text();
+                                    addLog(`サーバーからエラー応答がありました: ${errorData || response.statusText}`, 'error');
+                                } catch (textError) {
+                                    addLog('サーバーからエラー応答がありましたが、再起動プロセスは開始された可能性があります', 'warning');
+                                }
+                                
+                                // エラーメッセージを表示するが、サーバー監視は継続
+                                statusContainer.textContent = 'サーバー再起動APIからエラー応答がありましたが、再起動処理は継続している可能性があります';
+                                statusContainer.style.backgroundColor = '#fff3cd'; // 警告色
+                                statusContainer.style.color = '#856404'; // 警告テキスト色
+                                
+                                // サーバー状態の監視を開始（エラーでも監視継続）
+                                addLog('サーバーの状態を監視します...', 'info');
+                                startServerMonitoring();
+                            }
+                        } catch (fetchError) {
+                            // APIリクエスト自体の失敗（ネットワークエラーなど）
+                            // これはサーバーが再起動を開始した証拠かもしれない
+                            addLog(`API呼び出し中に接続が切断されました: ${fetchError.message}`, 'warning');
+                            addLog('これはサーバーが再起動プロセスを開始した可能性が高いです', 'info');
+                            
+                            // 状態を更新
+                            statusContainer.textContent = 'サーバーとの接続が切断されました。再起動プロセスを待機しています...';
+                            
+                            // サーバー監視を開始
+                            addLog('サーバーの応答を待機しています...', 'info');
+                            startServerMonitoring();
+                        }
+                    } catch (error) {
+                        // 全体的なエラーハンドリング（クライアント側のJavaScriptエラーなど）
+                        console.error('サーバー再起動処理中にクライアントエラーが発生しました:', error);
+                        alert('サーバー再起動処理中にエラーが発生しました: ' + error.message);
+                    }
+                }
+            });
+            
+            // チャット削除関数
+            async function deleteChat(id) {
+                if (!confirm('この質問と回答を削除しますか？この操作は元に戻せません。')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/chat-history/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // UIから削除
+                        const chatItem = document.querySelector(`.chat-item[data-id="${id}"]`);
+                        if (chatItem) {
+                            chatItem.remove();
+                        }
+                        
+                        // 統計を更新
+                        loadChatHistory();
+                    } else {
+                        console.error('削除エラー:', data.error);
+                        alert('削除中にエラーが発生しました: ' + (data.error || '不明なエラー'));
+                    }
+                } catch (error) {
+                    console.error('削除リクエストエラー:', error);
+                    alert('サーバーとの通信中にエラーが発生しました。');
+                }
+            }
+
+            function createChatBubble(message, isUser) {
+                const bubble = document.createElement('div');
+                bubble.className = isUser ? 'chat-bubble user' : 'chat-bubble assistant';
+                
+                const header = document.createElement('div');
+                header.className = 'chat-header';
+                header.textContent = isUser ? 'あなた' : 'アシスタント';
+                
+                const content = document.createElement('div');
+                content.className = 'chat-content';
+                
+                // コンテキスト情報を除去（#context:で始まる行）
+                let displayMessage = message;
+                if (isUser && displayMessage) {
+                    // コンテキスト情報を削除（#context:から始まり、改行までを削除）
+                    displayMessage = displayMessage.replace(/#context:.*?(\n|\r|$)/g, '');
+                    // 先頭の空行を削除
+                    displayMessage = displayMessage.replace(/^\s*[\r\n]+/g, '');
+                }
+                
+                content.innerHTML = displayMessage.replace(/\n/g, '<br>');
+                
+                bubble.appendChild(header);
+                bubble.appendChild(content);
+                
+                // 深堀りボタンを追加（アシスタントの回答のみに表示）
+                if (!isUser) {
+                    const actionBar = document.createElement('div');
+                    actionBar.className = 'chat-actions';
+                    
+                    const deepDiveButton = document.createElement('button');
+                    deepDiveButton.className = 'action-button deep-dive-btn';
+                    deepDiveButton.textContent = 'この回答について深堀りする';
+                    deepDiveButton.onclick = function() {
+                        deepDiveAnswer(message);
+                    };
+                    
+                    actionBar.appendChild(deepDiveButton);
+                    bubble.appendChild(actionBar);
+                }
+                
+                return bubble;
+            }
+
+            // 深堀り機能の実装
+            function deepDiveAnswer(answerContent) {
+                const questionInput = document.getElementById('question');
+                
+                // コンテキスト情報を作成
+                const context = {
+                    type: "answer_deep_dive",
+                    answerContent: answerContent
+                };
+                
+                // コンテキストを隠しフィールドに保存
+                document.getElementById('question-context').value = JSON.stringify(context);
+                
+                // 質問フォームにテンプレートを設定
+                questionInput.value = `この回答について詳しく知りたいです：\n\n"${answerContent.substring(0, 100)}${answerContent.length > 100 ? '...' : ''}"\n\n具体的に知りたいこと：`;
+                
+                // フォーカスを質問入力に移動してスクロール
+                questionInput.focus();
+                questionInput.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+    <script src="/js/bookkeeping.js"></script>
+</body>
+</html> 

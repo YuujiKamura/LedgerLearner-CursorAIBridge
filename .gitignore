@@ -1,0 +1,34 @@
+# 依存関係
+/node_modules
+
+# 環境設定ファイル
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ログファイル
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 実行時に生成されるデータファイル
+/data/*.json
+!/data/chat_history.json
+!/data/answer_data.json
+
+# システム関連ファイル
+.DS_Store
+Thumbs.db
+
+# IDE・エディタ設定
+/.idea
+/.vscode
+*.sublime-project
+*.sublime-workspace
+
+# キャッシュファイル
+.cache
+.temp
+.tmp 

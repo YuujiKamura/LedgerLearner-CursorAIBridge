@@ -1,0 +1,14 @@
+{
+  "tests\\server.test.js": [
+    "サーバーのテスト > GET /api/chat-history > チャット履歴を取得できること",
+    "サーバーのテスト > POST /api/ask > 新しい質問を追加できること",
+    "サーバーのテスト > POST /api/ask > 質問が空の場合はエラーを返すこと",
+    "サーバーのテスト > DELETE /api/chat-history/:id > 質問を削除できること",
+    "サーバーのテスト > DELETE /api/chat-history/:id > 存在しない質問IDの場合は404を返すこと",
+    "サーバーのテスト > 回答の保存と更新 > 回答を保存できること"
+  ],
+  "tests\\answer_poller.test.js": [
+    "answer_pollerのテスト > 回答データの更新を検出してチャット履歴を更新できること",
+    "answer_pollerのテスト > 存在しない質問IDの場合はエラーをログに記録すること"
+  ]
+}

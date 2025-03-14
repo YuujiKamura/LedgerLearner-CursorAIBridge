@@ -1,0 +1,65 @@
+[
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーとポーラーのデータセット連携テスト > 環境変数によるデータセット切り替えがサーバー側で正常に機能すること",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m1\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:314:34)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーとポーラーのデータセット連携テスト > サーバーとポーラーが同じデータセットを参照できること",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m1\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:383:38)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーとポーラーのデータセット連携テスト > DATA_DIR環境変数がサーバーとポーラーで一貫して機能すること",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m1\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:493:38)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > 環境変数によるファイルパスの切り替えが正常に機能すること",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:651:34)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > 直接ファイルパスを指定した場合に正しく機能すること（サーバー側）",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:717:41)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > 異なるデータセット間で切り替えられること（サーバー側）",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:795:38)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > 直接ファイルパスを指定した場合に正しく機能すること（サーバー側）",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:929:39)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > 異なるデータセット間で切り替えられること（サーバー側）",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:1000:36)"
+    ]
+  },
+  {
+    "file": "tests\\server.test.js",
+    "name": "サーバーのデータセット切り替えテスト > DATA_DIR環境変数による切り替えが正常に機能すること（サーバー側）",
+    "failureMessages": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at Object.toBe (C:\\Users\\yuuji\\cursor_ai_gui\\tests\\server.test.js:1080:35)"
+    ]
+  }
+]
