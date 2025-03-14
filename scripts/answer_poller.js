@@ -194,6 +194,17 @@ async function updateChatHistory(chatHistoryFile, answerDataFile) {
 
 // 重要な変更: startPolling関数を非同期関数に変更し、初期実行を待機できるようにする
 async function startPolling(chatHistoryFile, answerDataFile, interval = 2000) {
+  // ポーリング処理を一時的に無効化（デバッグのため）
+  console.log('==================================================');
+  console.log('警告: ポーリング処理は現在無効化されています');
+  console.log('チャット履歴と回答データの同期は行われません');
+  console.log('問題が解決したら、この変更を元に戻してください');
+  console.log('==================================================');
+  
+  // 問題のデバッグが完了したら、この行を削除して元のコードを復活させてください
+  return true;
+  
+  /* 以下の原本コードは無効化されています
   // 引数で指定されたファイルパスが必ず優先されるように変更
   // 引数がfalsy値の場合のみデフォルト値を使用
   const chatHistoryPath = chatHistoryFile || CHAT_HISTORY_FILE;
@@ -238,6 +249,7 @@ async function startPolling(chatHistoryFile, answerDataFile, interval = 2000) {
     console.error('ポーリング開始中にエラーが発生しました:', error);
     throw error;
   }
+  */
 }
 
 function stopPolling() {

@@ -329,6 +329,13 @@ app.post('/api/answer/:id', async (req, res) => {
     
     // answer_data.jsonに回答を追加
     try {
+      // デバッグのため一時的に無効化
+      console.log('==================================================');
+      console.log('警告: answer_data.jsonへの書き込みは現在無効化されています');
+      console.log('問題が解決したら、この変更を元に戻してください');
+      console.log('==================================================');
+      
+      /* 以下の原本コードは無効化されています
       const answerData = await loadAnswerData();
       
       // 既存の回答を更新または新しい回答を追加
@@ -347,6 +354,7 @@ app.post('/api/answer/:id', async (req, res) => {
       
       await fs.writeFile(ANSWER_DATA_FILE, JSON.stringify(answerData, null, 2), 'utf8');
       console.log(`質問ID: ${id} の回答をanswer_data.jsonに保存しました`);
+      */
     } catch (error) {
       console.error('answer_data.jsonへの書き込み中にエラーが発生しました:', error);
       // ここではエラーを無視し、チャット履歴への保存は維持する
@@ -803,28 +811,37 @@ async function saveAnswer(id, answer) {
     await saveChatHistory(chatHistory);
     
     // answer_data.jsonに回答を追加
-    const answerData = await loadAnswerData();
-    
-    // 既存の回答を更新または新しい回答を追加
-    const existingAnswerIndex = answerData.answers.findIndex(a => a.id === id);
-    const newAnswer = {
-      id,
-      answer,
-      timestamp: new Date().toISOString()
-    };
-    
-    if (existingAnswerIndex !== -1) {
-      answerData.answers[existingAnswerIndex] = newAnswer;
-    } else {
-      answerData.answers.push(newAnswer);
+    try {
+      // デバッグのため一時的に無効化
+      console.log('==================================================');
+      console.log('警告: answer_data.jsonへの書き込みは現在無効化されています');
+      console.log('問題が解決したら、この変更を元に戻してください');
+      console.log('==================================================');
+      
+      /* 以下の原本コードは無効化されています
+      const answerData = await loadAnswerData();
+      
+      // 既存の回答を更新または新しい回答を追加
+      const existingAnswerIndex = answerData.answers.findIndex(a => a.id === id);
+      const newAnswer = {
+        id,
+        answer,
+        timestamp: new Date().toISOString()
+      };
+      
+      if (existingAnswerIndex !== -1) {
+        answerData.answers[existingAnswerIndex] = newAnswer;
+      } else {
+        answerData.answers.push(newAnswer);
+      }
+      
+      await fs.writeFile(ANSWER_DATA_FILE, JSON.stringify(answerData, null, 2), 'utf8');
+      console.log(`質問ID: ${id} の回答をanswer_data.jsonに保存しました`);
+      */
+    } catch (error) {
+      console.error('answer_data.jsonへの書き込み中にエラーが発生しました:', error);
+      // ここではエラーを無視し、チャット履歴への保存は維持する
     }
-    
-    await fs.writeFile(ANSWER_DATA_FILE, JSON.stringify(answerData, null, 2), 'utf8');
-    console.log(`質問ID: ${id} の回答をanswer_data.jsonに保存しました`);
-    
-    // 問題データの自動更新は行わない
-    // 代わりに update_problem_data.js スクリプトを使用して手動で更新
-    // await updateProblemData();
     
     return true;
   } catch (error) {
