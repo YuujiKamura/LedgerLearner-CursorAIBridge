@@ -406,7 +406,15 @@ class BookkeepingApp {
     // 科目のオプションリストを作成（すべての問題から固有の科目を抽出）
     const allAccounts = new Set();
     this.problems.forEach(p => {
-      if (p.correctAnswer) {
+      // correctAnswers配列から科目を抽出
+      if (p.correctAnswers && Array.isArray(p.correctAnswers)) {
+        p.correctAnswers.forEach(answer => {
+          if (answer.debit) allAccounts.add(answer.debit);
+          if (answer.credit) allAccounts.add(answer.credit);
+        });
+      }
+      // 単一のcorrectAnswerから科目を抽出
+      else if (p.correctAnswer) {
         if (p.correctAnswer.debit) allAccounts.add(p.correctAnswer.debit);
         if (p.correctAnswer.credit) allAccounts.add(p.correctAnswer.credit);
       }
@@ -477,11 +485,24 @@ class BookkeepingApp {
     }
     
     let isCorrect = false;
+    let matchedAnswer = null;
     
-    // 正解かどうかをチェック
-    if (problem.correctAnswer) {
+    // correctAnswers配列があれば、そこから正解をチェック
+    if (problem.correctAnswers && Array.isArray(problem.correctAnswers)) {
+      // 複数の正解パターンをチェック
+      for (const answer of problem.correctAnswers) {
+        if (userDebit === answer.debit && userCredit === answer.credit) {
+          isCorrect = true;
+          matchedAnswer = answer;
+          break;
+        }
+      }
+    } 
+    // 従来の単一のcorrectAnswerの場合
+    else if (problem.correctAnswer) {
       isCorrect = (userDebit === problem.correctAnswer.debit && 
                   userCredit === problem.correctAnswer.credit);
+      matchedAnswer = problem.correctAnswer;
     }
     
     // 結果表示
@@ -503,9 +524,14 @@ class BookkeepingApp {
           <p>${problem.explanation}</p>
         `;
       } else {
+        // 一致した回答パターンを表示
+        const correctDebit = matchedAnswer ? matchedAnswer.debit : problem.correctAnswer.debit;
+        const correctCredit = matchedAnswer ? matchedAnswer.credit : problem.correctAnswer.credit;
+        const methodText = matchedAnswer && matchedAnswer.method ? `（${matchedAnswer.method}）` : '';
+        
         explanationContainer.innerHTML = `
-          <h4>正解</h4>
-          <p>借方：${problem.correctAnswer.debit}<br>貸方：${problem.correctAnswer.credit}</p>
+          <h4>正解${methodText}</h4>
+          <p>借方：${correctDebit}<br>貸方：${correctCredit}</p>
         `;
       }
       
