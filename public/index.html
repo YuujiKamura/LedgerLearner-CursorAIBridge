@@ -1241,6 +1241,26 @@
                 questionInput.focus();
                 questionInput.scrollIntoView({ behavior: 'smooth' });
             }
+
+            // ページ読み込み完了時に直接BookkeepingAppを初期化
+            window.addEventListener('load', () => {
+                console.log('ページ読み込み完了: BookkeepingAppを初期化します');
+                // インスタンス作成
+                window.bookkeepingApp = new BookkeepingApp();
+                
+                // 簿記タブボタンのイベントリスナーを追加
+                const bookkeepingTabBtn = document.querySelector('.tab-btn[data-tab="bookkeeping"]');
+                if (bookkeepingTabBtn) {
+                    bookkeepingTabBtn.addEventListener('click', () => {
+                        console.log('簿記タブがクリックされました');
+                        if (window.bookkeepingApp) {
+                            // 既存のインスタンスなら問題とチャット履歴を再読込
+                            window.bookkeepingApp.loadProblems();
+                            window.bookkeepingApp.loadChatHistory();
+                        }
+                    });
+                }
+            });
         });
     </script>
     <script src="/js/context_parser.js"></script>

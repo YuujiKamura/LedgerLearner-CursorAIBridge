@@ -189,4 +189,29 @@ body.dark-theme .progress-bar {
 
 .btn-secondary:hover {
     background-color: #27ae60;
+}
+
+/* 読み込み中インジケーターのスタイル */
+.loading-indicator {
+  text-align: center;
+  padding: 15px;
+  color: #888;
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* タブコンテンツが表示されるときのアニメーション */
+.tab-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 } 

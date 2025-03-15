@@ -169,38 +169,67 @@ app.post('/api/restart-server', async (req, res) => {
       console.log(`[API] 現在のプロセスID: ${currentPid}`);
       
       try {
-        // ポート番号を取得して他のプロセスを終了
-        const serverPort = parseInt(PORT, 10);
-        await killExistingServer(serverPort);
+        // Windowsであるかどうかを確認
+        const isWindows = process.platform === 'win32';
         
-        // 現在のプロセスディレクトリを記録
-        const currentDir = process.cwd();
+        if (isWindows) {
+          // Windowsの場合はバッチファイルを使用
+          console.log('[API] Windows環境を検出しました。バッチファイルを使用します。');
+          
+          const { exec } = require('child_process');
+          const path = require('path');
+          
+          // バッチファイルの絶対パス
+          const batchPath = path.resolve(__dirname, 'restart_server.bat');
+          console.log(`[API] バッチファイルパス: ${batchPath}`);
+          
+          // 直接cmd.exeを使ってバッチファイルを実行（Git Bashでの問題を回避）
+          const command = `cmd.exe /c start "" "${batchPath}"`;
+          console.log(`[API] 実行コマンド: ${command}`);
+          
+          // 子プロセスを分離して実行
+          const child = exec(command, {
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: false
+          });
+          
+          // 親プロセスから切り離す
+          if (child.unref) {
+            child.unref();
+          }
+          
+          console.log('[API] 再起動バッチファイルを実行しました');
+        } else {
+          // Linux/Macの場合は直接npm startを実行
+          console.log('[API] UNIX環境を検出しました。');
+          
+          const { spawn } = require('child_process');
+          
+          // バックグラウンドで実行（nohupsを使用）
+          const child = spawn('nohup', ['npm', 'start'], {
+            detached: true,
+            stdio: 'ignore',
+            cwd: __dirname
+          });
+          
+          // 親プロセスから切り離す
+          child.unref();
+          
+          console.log('[API] 新しいプロセスをバックグラウンドで開始しました');
+        }
         
-        // 現在の実行コマンドライン引数を記録
-        const args = process.argv.slice(1);  // 最初の要素（node）を除く
-        
-        // 子プロセスとして新しいサーバーを起動
-        const { spawn } = require('child_process');
-        const node = process.execPath;  // Node.jsの実行パス
-        
-        console.log(`[API] 新しいサーバープロセスを起動: ${node} ${args.join(' ')}`);
-        const child = spawn(node, args, {
-          detached: true,
-          stdio: 'inherit',
-          cwd: currentDir
-        });
-        
-        // 親プロセスから切り離す
-        child.unref();
-        
-        // 自分自身のプロセスを終了
-        console.log('[API] 現在のプロセスを終了します...');
-        process.exit(0);
+        // タイマーを設定して現在のプロセスを終了
+        console.log('[API] 現在のプロセスは5秒後に終了します...');
+        setTimeout(() => {
+          console.log('[API] プロセスを終了します。PID:', process.pid);
+          process.exit(0);
+        }, 5000);
       } catch (error) {
         console.error('[API] サーバー再起動プロセス中にエラーが発生しました:', error);
         process.exit(1);  // エラーコードで終了
       }
-    }, 1000);
+    }, 2000);
   } catch (error) {
     console.error('[API] サーバー再起動中にエラーが発生しました:', error);
     res.status(500).json({ error: 'サーバー再起動に失敗しました' });
@@ -538,6 +567,9 @@ async function killExistingServer(port) {
           
           if (killSuccess) {
             console.log('既存のサーバーを終了しました');
+            // プロセス終了後に5秒待機してポートが確実に解放されるのを待つ
+            console.log('ポートが解放されるまで5秒待機します...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
             return true;
           } else {
             console.log('プロセスの終了に失敗しました');
@@ -564,6 +596,9 @@ async function killExistingServer(port) {
         // lsofコマンドでポートを使用しているプロセスを終了（-rオプション追加で空の場合エラーにならない）
         execSync(`lsof -i :${port} -t | xargs -r kill -9`, { encoding: 'utf8' });
         console.log('既存のサーバーを終了しました');
+        // プロセス終了後に5秒待機してポートが確実に解放されるのを待つ
+        console.log('ポートが解放されるまで5秒待機します...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
         return true;
       } catch (innerError) {
         if (innerError.status === 1 && !innerError.stdout) {
@@ -576,11 +611,6 @@ async function killExistingServer(port) {
         return false;
       }
     }
-    
-    // 少し待ってからポートが解放されるのを待つ
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return true;
   } catch (error) {
     console.error('既存のサーバーの終了に失敗しました:', error.message);
     return false;
@@ -600,6 +630,68 @@ async function startServer(port = PORT) {
   
   return new Promise(async (resolve, reject) => {
     try {
+      // まずポートが使用されていないか確認
+      let portInUse = false;
+      try {
+        const server = require('net').createServer();
+        await new Promise((resolvePort, rejectPort) => {
+          server.once('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+              console.log(`[検出] ポート ${port} は既に使用されています`);
+              portInUse = true;
+              resolvePort();
+            } else {
+              rejectPort(err);
+            }
+          });
+          server.once('listening', () => {
+            server.close();
+            resolvePort();
+          });
+          server.listen(port);
+        });
+      } catch (portCheckErr) {
+        console.error('ポート確認中にエラーが発生しました:', portCheckErr);
+      }
+
+      // ポートが使用中の場合は処理
+      if (portInUse) {
+        let action;
+        
+        // 起動モードに応じた処理
+        if (START_MODE === 'auto') {
+          console.log(`自動モード: 既存のサーバーを終了します...`);
+          action = 'kill';
+        } else if (START_MODE === 'port') {
+          console.error(`ポートモード: 別のポートを試みることができません。終了します。`);
+          reject(new Error(`ポート ${port} は既に使用されています。`));
+          return;
+        } else {
+          // デフォルトはプロンプトモード
+          action = await promptUserForAction(port);
+        }
+        
+        if (action === 'kill') {
+          const success = await killExistingServer(port);
+          if (!success) {
+            reject(new Error('既存のサーバーを終了できませんでした。'));
+            return;
+          }
+        } else if (action === 'port') {
+          // 新しいポートを試す (1000を加算)
+          const newPort = port + 1000;
+          console.log(`新しいポート ${newPort} で起動を試みます...`);
+          const server = await startServer(newPort);
+          resolve(server);
+          return;
+        } else {
+          // キャンセルの場合
+          reject(new Error('ユーザーによりサーバー起動がキャンセルされました。'));
+          return;
+        }
+      }
+
+      // サーバー起動
       const server = app.listen(port, () => {
         console.log(MESSAGES.SERVER_STARTED + port);
         console.log(MESSAGES.CLAUDE_BRIDGE);
@@ -619,63 +711,53 @@ async function startServer(port = PORT) {
           
           // 起動モードに応じた処理
           if (START_MODE === 'auto') {
-            // 自動的に既存のサーバーを終了
-            const success = await killExistingServer(port);
-            action = success ? { action: 'restart', port } : { action: 'cancel' };
-          } else if (START_MODE === 'prompt') {
-            // ユーザーに選択肢を提示
-            action = await promptUserForAction(port);
+            console.log(`自動モード: 既存のサーバーを終了します...`);
+            action = 'kill';
           } else if (START_MODE === 'port') {
-            // 別のポートで起動（1増やす）
-            const nextPort = port + 1;
-            console.log(`ポート ${nextPort} で試行します...`);
-            action = { action: 'new_port', port: nextPort };
+            console.error(`ポートモード: 別のポートを試みることができません。終了します。`);
+            reject(e);
+            return;
           } else {
-            // 不明なモードの場合はキャンセル
-            action = { action: 'cancel' };
+            // デフォルトはプロンプトモード
+            action = await promptUserForAction(port);
           }
           
-          // アクションに基づいて処理
-          switch (action.action) {
-            case 'restart':
-              // 再起動を試みる
-              try {
-                // ポートが解放されるまで少し待つ（時間を増やす）
-                await new Promise(resolveTimeout => setTimeout(resolveTimeout, 2000));
-                // 数値型として渡す
-                const newServer = await startServer(Number(action.port));
+          if (action === 'kill') {
+            try {
+              const success = await killExistingServer(port);
+              if (success) {
+                console.log(`再度ポート ${port} で起動を試みます...`);
+                // 少し待ってからポートが解放されるのを待つ
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const newServer = await startServer(port);
                 resolve(newServer);
-              } catch (error) {
-                console.error('サーバー再起動中にエラーが発生しました:', error.message);
-                reject(error);
+              } else {
+                reject(new Error('既存のサーバーを終了できませんでした。'));
               }
-              break;
-            case 'new_port':
-              // 別のポートで再試行
-              try {
-                // 数値型として渡す
-                const newServer = await startServer(Number(action.port));
-                resolve(newServer);
-              } catch (error) {
-                console.error('別ポートでのサーバー起動中にエラーが発生しました:', error.message);
-                reject(error);
-              }
-              break;
-            case 'cancel':
-              // 起動をキャンセル
-              reject(new Error('サーバーの起動がキャンセルされました。'));
-              break;
-            default:
-              reject(e);
+            } catch (killError) {
+              reject(killError);
+            }
+          } else if (action === 'port') {
+            // 新しいポートを試す (1000を加算)
+            const newPort = port + 1000;
+            console.log(`新しいポート ${newPort} で起動を試みます...`);
+            try {
+              const newServer = await startServer(newPort);
+              resolve(newServer);
+            } catch (portError) {
+              reject(portError);
+            }
+          } else {
+            // キャンセルの場合
+            reject(new Error('ユーザーによりサーバー起動がキャンセルされました。'));
           }
         } else {
-          // その他のエラー
-          console.error('サーバー起動中に予期しないエラーが発生しました:', e);
+          console.error('サーバー起動中にエラーが発生しました:', e);
           reject(e);
         }
       });
     } catch (error) {
-      console.error('サーバーの起動処理中にエラーが発生しました:', error);
+      console.error('サーバー起動中にエラーが発生しました:', error);
       reject(error);
     }
   });
@@ -751,7 +833,6 @@ if (require.main === module) {
   });
 }
 
-// テスト用にappとサーバーをエクスポート
 module.exports = app;
 
 // チャット履歴を読み込む関数
@@ -850,7 +931,7 @@ async function saveAnswer(id, answer) {
   }
 }
 
-// チャット履歴を更新する関数（テスト用にもエクスポート）
+// チャット履歴を更新する関数（テスト用にエクスポート）
 async function updateChatHistory() {
   try {
     console.log('チャット履歴の更新を開始します...');

@@ -5,25 +5,85 @@ class BookkeepingApp {
     this.currentProblemId = null;
     this.pollingInterval = null;
     this.chatHistory = [];
-    this.loadProblems();
-    this.loadChatHistory();
-    this.initEventListeners();
-    // 問題データの定期的な更新をセットアップ
-    this.setupProblemPolling();
+    this.initialized = false;
+    
+    // 初期化処理
+    this.init();
+  }
+  
+  // 非同期の初期化処理
+  async init() {
+    try {
+      console.log('BookkeepingApp初期化開始');
+      
+      // 問題リストの初期表示（読み込み中を表示）
+      this.initProblemListUI();
+
+      // イベントリスナーを先に設定
+      this.initEventListeners();
+      
+      // APIからデータを取得
+      console.log('データ読み込み開始...');
+      
+      // 問題データを優先的に読み込む
+      await this.loadProblems();
+      
+      // チャット履歴を読み込む（非同期だが完了を待たない）
+      this.loadChatHistory().catch(err => {
+        console.error('チャット履歴の読み込みエラー:', err);
+      });
+      
+      // データのポーリング設定
+      this.setupProblemPolling();
+      
+      this.initialized = true;
+      console.log('BookkeepingApp初期化完了');
+    } catch (error) {
+      console.error('BookkeepingApp初期化エラー:', error);
+    }
+  }
+  
+  // 問題リストのUIを初期化
+  initProblemListUI() {
+    const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
+    if (listContainer) {
+      listContainer.innerHTML = `
+        <h3>問題一覧</h3>
+        <p class="loading-indicator">問題データを読み込み中...</p>
+      `;
+    }
   }
 
   // 問題データを読み込む
   async loadProblems() {
     try {
-      // 以前はローカルJSONファイルを読み込んでいたが、APIから取得するように変更
+      console.log('問題データの読み込みを開始...');
+      
+      // 問題リストの初期表示を「読み込み中」にする
+      const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
+      if (listContainer) {
+        listContainer.innerHTML = `
+          <h3>問題一覧</h3>
+          <p class="loading-indicator">問題データを読み込み中...</p>
+        `;
+      }
+      
+      // 問題データをAPIから取得
+      console.log('問題データのAPIリクエスト送信...');
       const response = await fetch('/api/problems');
       if (!response.ok) {
+        console.error('問題データAPI応答エラー:', response.status, response.statusText);
         throw new Error('問題データの取得に失敗しました');
       }
       
+      console.log('問題データのAPI応答を受信。JSONパース開始...');
       const data = await response.json();
+      
       if (data && Array.isArray(data)) {
         this.problems = data;
+        console.log(`問題データを読み込みました: ${this.problems.length}件`);
+        
+        // 問題リストを更新
         this.updateProblemList();
         
         // 最初の問題を表示（問題がない場合は表示しない）
@@ -94,12 +154,13 @@ class BookkeepingApp {
 
   // イベントリスナーを初期化
   initEventListeners() {
+    console.log('イベントリスナーを初期化');
     // 問題リストのクリックイベント
     document.querySelector('#bookkeeping-tab').addEventListener('click', (e) => {
       if (e.target.matches('.problem-item') || e.target.closest('.problem-item')) {
         const item = e.target.matches('.problem-item') ? e.target : e.target.closest('.problem-item');
         const problemId = item.dataset.id;
-        console.log('選択された問題ID:', problemId); // デバッグログ
+        console.log('選択された問題ID:', problemId);
         this.displayProblem(problemId);
       }
       
@@ -125,6 +186,14 @@ class BookkeepingApp {
         e.stopPropagation(); // 親要素のクリックイベントを停止
       }
     });
+    
+    // 簿記タブが選択されたときのイベント
+    const bookkeepingTabBtn = document.querySelector('.tab-btn[data-tab="bookkeeping"]');
+    if (bookkeepingTabBtn) {
+      bookkeepingTabBtn.addEventListener('click', () => {
+        // このイベントはindex.htmlの新しいイベントハンドラで処理するため、ここは空にする
+      });
+    }
   }
 
   // 履歴タブの該当質問箇所に移動
@@ -144,7 +213,7 @@ class BookkeepingApp {
             }
             if (item.question && item.question.includes('#context:')) {
               // コンテキスト情報からJSONを抽出して解析
-              const contextMatch = item.question.match(/#context: (.+?)(\n|\r|$)/);
+              const contextMatch = item.question.match(/#context: ({.+?})(?:\n|\r|$)/);
               if (contextMatch) {
                 const contextData = JSON.parse(contextMatch[1]);
                 return contextData.problemId === problemId;
@@ -176,39 +245,68 @@ class BookkeepingApp {
 
   // 問題リストを更新
   updateProblemList() {
-    const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
-    
-    // 進捗データを取得
-    const progress = this.getProgress();
-    
-    // 問題リストを生成
-    listContainer.innerHTML = `
-      <h3>問題一覧</h3>
-      <div class="progress-bar">
-        <div class="progress" style="width: ${this.getProgressPercentage()}%"></div>
-      </div>
-      <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問正解</p>
-      <ul class="problem-list-items">
-        ${this.problems.map(problem => {
-          // 問題に関する質問履歴があるかチェック
-          const hasQuestionHistory = this.checkQuestionHistory(problem.id);
-          
-          return `
-          <li class="problem-item ${progress[problem.id]?.isCorrect ? 'solved' : ''}" data-id="${problem.id}">
-            ${problem.problemId || problem.id}. ${problem.category}
-            <span class="icons">
-              ${progress[problem.id]?.isCorrect ? '<span class="check-mark">✓</span>' : ''}
-              ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
-            </span>
-          </li>
-        `}).join('')}
-      </ul>
-    `;
-    
-    // CSS スタイルを追加
-    this.addCustomStyles();
-    
-    console.log('問題リストを更新しました。問題数:', this.problems.length); // デバッグ用
+    try {
+      console.log('問題リストの更新を開始...');
+      
+      // 問題リストの要素があるか確認
+      const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
+      if (!listContainer) {
+        console.error('問題リストのコンテナが見つかりません');
+        return;
+      }
+      
+      // 問題データがあるか確認
+      if (!this.problems || this.problems.length === 0) {
+        console.warn('問題データがありません');
+        listContainer.innerHTML = `
+          <h3>問題一覧</h3>
+          <p>問題データがありません。</p>
+        `;
+        return;
+      }
+      
+      // 進捗データを取得
+      const progress = this.getProgress();
+      
+      console.log('問題リストのHTMLを生成...');
+      listContainer.innerHTML = `
+        <h3>問題一覧</h3>
+        <div class="progress-bar">
+          <div class="progress" style="width: ${this.getProgressPercentage()}%"></div>
+        </div>
+        <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問正解</p>
+        <ul class="problem-list-items">
+          ${this.problems.map(problem => {
+            // 問題に関する質問履歴があるかチェック
+            const hasQuestionHistory = this.checkQuestionHistory(problem.id);
+            
+            return `
+            <li class="problem-item ${progress[problem.id]?.isCorrect ? 'solved' : ''}" data-id="${problem.id}">
+              ${problem.problemId || problem.id}. ${problem.category}
+              <span class="icons">
+                ${progress[problem.id]?.isCorrect ? '<span class="check-mark">✓</span>' : ''}
+                ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
+              </span>
+            </li>
+          `}).join('')}
+        </ul>
+      `;
+      
+      // CSS スタイルを追加
+      this.addCustomStyles();
+      
+      console.log('問題リストを更新しました。問題数:', this.problems.length);
+    } catch (error) {
+      console.error('問題リスト更新中にエラーが発生しました:', error);
+      // エラーメッセージを表示
+      const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
+      if (listContainer) {
+        listContainer.innerHTML = `
+          <h3>問題一覧</h3>
+          <div class="error-message">問題リストの表示中にエラーが発生しました。</div>
+        `;
+      }
+    }
   }
 
   // 質問履歴があるかチェック
@@ -240,9 +338,14 @@ class BookkeepingApp {
         return null;
       }
       // コンテキスト情報からJSONを抽出して解析
-      const contextMatch = questionText.match(/#context: (.+?)(\n|\r|$)/);
+      const contextMatch = questionText.match(/#context: ({.+?})(?:\n|\r|$)/);
       if (contextMatch) {
-        return JSON.parse(contextMatch[1]);
+        const parsedData = JSON.parse(contextMatch[1]);
+        // データの検証 - 必須フィールドの存在確認
+        if (!parsedData.problemId) {
+          console.warn('コンテキストデータに問題IDが含まれていません');
+        }
+        return parsedData;
       }
       return null;
     } catch (e) {
@@ -619,25 +722,36 @@ class BookkeepingApp {
         debit: userDebit || "未選択",
         credit: userCredit || "未選択"
       },
-      correctAnswer: problem.answer
+      correctAnswer: problem.correctAnswer || problem.correctAnswers
     };
     
-    // コンテキスト情報を隠しフィールドに保存
-    document.getElementById('question-context').value = JSON.stringify(context);
-    
-    // メイン質問フォームにはユーザーが読みやすい形式のみを表示
-    const questionInput = document.getElementById('question');
-    let methodInfo = userMethod ? `記帳方法「${userMethod}」、` : '';
-    questionInput.value = `【問題ID: ${problem.id}】【カテゴリ: ${problem.category}】\n\n${problem.question}\n\n私の解答：${methodInfo}借方「${userDebit || "未選択"}」、貸方「${userCredit || "未選択"}」\n\n質問内容：`;
-    
-    // 質問フォームにフォーカスしてスクロール
-    questionInput.focus();
-    questionInput.scrollIntoView({ behavior: 'smooth' });
-    
-    // 質問タブをアクティブにする
-    const historyTabBtn = document.querySelector('.tab-btn[data-tab="history"]');
-    if (historyTabBtn) {
-      historyTabBtn.click();
+    // JSONの構造検証
+    try {
+      // コンテキストをJSON文字列に変換し、再度パースして検証
+      const jsonString = JSON.stringify(context);
+      JSON.parse(jsonString);
+      
+      // コンテキスト情報を隠しフィールドに保存
+      const formattedContext = `#context: ${jsonString}`;
+      document.getElementById('question-context').value = formattedContext;
+      
+      // メイン質問フォームにはユーザーが読みやすい形式のみを表示
+      const questionInput = document.getElementById('question');
+      let methodInfo = userMethod ? `記帳方法「${userMethod}」、` : '';
+      questionInput.value = `【問題ID: ${problem.id}】【カテゴリ: ${problem.category}】\n\n${problem.question}\n\n私の解答：${methodInfo}借方「${userDebit || "未選択"}」、貸方「${userCredit || "未選択"}」\n\n質問内容：`;
+      
+      // 質問フォームにフォーカスしてスクロール
+      questionInput.focus();
+      questionInput.scrollIntoView({ behavior: 'smooth' });
+      
+      // 質問タブをアクティブにする
+      const historyTabBtn = document.querySelector('.tab-btn[data-tab="history"]');
+      if (historyTabBtn) {
+        historyTabBtn.click();
+      }
+    } catch (e) {
+      console.error('コンテキストデータの生成中にエラーが発生しました:', e);
+      alert('コンテキストデータの生成中にエラーが発生しました。後でもう一度試してください。');
     }
   }
 }
@@ -648,13 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const bookkeepingTabBtn = document.querySelector('.tab-btn[data-tab="bookkeeping"]');
   if (bookkeepingTabBtn) {
     bookkeepingTabBtn.addEventListener('click', () => {
-      // BookkeepingAppクラスのインスタンスがなければ初期化
-      if (!window.bookkeepingApp) {
-        window.bookkeepingApp = new BookkeepingApp();
-      } else {
-        // インスタンスがすでに存在する場合はチャット履歴を再読み込み
-        window.bookkeepingApp.loadChatHistory();
-      }
+      // このイベントはindex.htmlの新しいイベントハンドラで処理するため、ここは空にする
     });
   }
 }); 
