@@ -226,6 +226,46 @@
             align-items: center;
             margin-top: 5px;
         }
+        .chat-meta-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 5px;
+            color: #7f8c8d;
+            font-size: 0.85em;
+            padding: 0 15px;
+        }
+        
+        .answer-meta-info {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            color: #7f8c8d;
+            font-size: 0.85em;
+            padding: 0 15px;
+        }
+        
+        .chat-id, .chat-time, .chat-status, .answer-time {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        
+        .chat-status {
+            font-weight: bold;
+        }
+        
+        /* ダークテーマのスタイル */
+        body.dark-theme .chat-id, 
+        body.dark-theme .chat-time, 
+        body.dark-theme .chat-status,
+        body.dark-theme .answer-time {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
     </style>
 </head>
 <body>
@@ -487,13 +527,63 @@
                             chatItem.className = 'chat-item';
                             chatItem.id = `chat-item-${item.questionId}`;
                             
-                            // 質問部分
-                            const questionBubble = createChatBubble(item.question, true);
+                            // 質問部分を加工して表示（コンテキスト情報を除去）
+                            let displayQuestion = item.question;
+                            if (displayQuestion && displayQuestion.includes('#context:')) {
+                                // コンテキスト情報を除去し、実際の質問部分のみを表示
+                                displayQuestion = displayQuestion.replace(/#context:.*?(\n|\r|$)/g, '');
+                            }
+                            
+                            const questionBubble = createChatBubble(displayQuestion, true);
+                            
+                            // メタデータの表示を追加
+                            const metaInfo = document.createElement('div');
+                            metaInfo.className = 'chat-meta-info';
+                            
+                            // 質問ID
+                            const idSpan = document.createElement('span');
+                            idSpan.className = 'chat-id';
+                            idSpan.textContent = `ID: ${item.questionId || item.id || '不明'}`;
+                            metaInfo.appendChild(idSpan);
+                            
+                            // 投稿時間
+                            if (item.timestamp) {
+                                const timeSpan = document.createElement('span');
+                                timeSpan.className = 'chat-time';
+                                const date = new Date(item.timestamp);
+                                timeSpan.textContent = `投稿: ${date.toLocaleString('ja-JP')}`;
+                                metaInfo.appendChild(timeSpan);
+                            }
+                            
+                            // ステータス
+                            const statusSpan = document.createElement('span');
+                            statusSpan.className = 'chat-status';
+                            statusSpan.textContent = `状態: ${item.status === 'answered' ? '回答済み' : 
+                                                             item.status === 'completed' ? '完了' : '回答待ち'}`;
+                            metaInfo.appendChild(statusSpan);
+                            
+                            // メタデータを質問の前に挿入
+                            chatItem.appendChild(metaInfo);
                             chatItem.appendChild(questionBubble);
                             
                             // 回答部分（あれば表示、なければ回答待ちと表示）
-                            if (item.status === 'answered' && item.answer) {
+                            if ((item.status === 'answered' || item.status === 'completed') && item.answer) {
                                 const answerBubble = createChatBubble(item.answer, false);
+                                
+                                // 回答時間を表示
+                                if (item.answeredAt) {
+                                    const answerMeta = document.createElement('div');
+                                    answerMeta.className = 'answer-meta-info';
+                                    
+                                    const answerTimeSpan = document.createElement('span');
+                                    answerTimeSpan.className = 'answer-time';
+                                    const answerDate = new Date(item.answeredAt);
+                                    answerTimeSpan.textContent = `回答時間: ${answerDate.toLocaleString('ja-JP')}`;
+                                    answerMeta.appendChild(answerTimeSpan);
+                                    
+                                    chatItem.appendChild(answerMeta);
+                                }
+                                
                                 chatItem.appendChild(answerBubble);
                             } else {
                                 const pendingAnswer = document.createElement('div');
