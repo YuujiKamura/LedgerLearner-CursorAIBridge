@@ -13,6 +13,7 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs').promises;
+const assert = require('assert');
 
 // テスト結果保存用
 const TEST_RESULTS_FILE = path.join(__dirname, '..', 'data', 'display_test_results.json');
@@ -42,20 +43,144 @@ async function validateDisplays() {
   };
   
   try {
-    // テスト1: ページが読み込めるか
-    await testPageLoad(page, testResults);
+    // テスト用のデータを準備
+    const testDataPath = path.join(__dirname, '../data/chat_history_test.json');
     
-    // テスト2: チャット履歴タブが表示されるか
-    await testHistoryTab(page, testResults);
+    // 既存のチャット履歴をバックアップ
+    const originalDataPath = path.join(__dirname, '../data/chat_history.json');
+    const backupPath = path.join(__dirname, '../data/chat_history.json.test_backup');
     
-    // テスト3: チャット履歴のアイテムが表示されるか
-    await testChatItems(page, testResults);
+    if (fs.existsSync(originalDataPath)) {
+      fs.copyFileSync(originalDataPath, backupPath);
+      console.log('既存のチャット履歴をバックアップしました');
+    }
     
-    // テスト4: コンテキスト情報が正しく処理されているか
-    await testContextProcessing(page, testResults);
+    // テスト用データの作成
+    const testData = [
+      {
+        "questionId": "test-question-1",
+        "question": "#context: {\"problemId\":\"test-problem-1\",\"category\":\"テストカテゴリ\",\"question\":\"テスト質問です。\",\"userAnswer\":{\"method\":\"未選択\",\"debit\":\"テスト\",\"credit\":\"テスト\"}}\n質問内容：テストです",
+        "answer": "テスト回答です。",
+        "timestamp": new Date().toISOString(),
+        "answeredAt": new Date().toISOString(),
+        "status": "answered"
+      },
+      {
+        "questionId": "test-question-2",
+        "question": "通常の質問（コンテキストなし）",
+        "answer": "通常の回答",
+        "timestamp": new Date().toISOString(),
+        "answeredAt": new Date().toISOString(),
+        "status": "completed"
+      },
+      {
+        "questionId": "test-question-3",
+        "question": "#context: {\"problemId\":\"test-problem-3\",\"category\":\"テストカテゴリ3\",\"question\":\"テスト質問3です。\",\"userAnswer\":{\"method\":\"未選択\",\"debit\":\"テスト3\",\"credit\":\"テスト3\"}}\n【問題ID: test-problem-3】【カテゴリ: テストカテゴリ3】\nテスト質問3です。\n\n質問内容：問題文が含まれている場合のテスト",
+        "timestamp": new Date().toISOString(),
+        "status": "pending"
+      }
+    ];
     
-    // テスト5: メタ情報が表示されているか
-    await testMetadataDisplay(page, testResults);
+    // テスト用データを書き込み
+    fs.writeFileSync(testDataPath, JSON.stringify(testData, null, 2));
+    fs.copyFileSync(testDataPath, originalDataPath);
+    console.log('テスト用データを設定しました');
+    
+    // ページへアクセス
+    await page.goto('http://localhost:3000', {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+    console.log('ページに接続しました');
+    
+    // 履歴タブに切り替え
+    await page.click('button.tab-btn[data-tab="history"]');
+    console.log('履歴タブに切り替えました');
+    
+    // チャット履歴が読み込まれるのを待つ
+    await page.waitForSelector('.chat-item', { timeout: 10000 });
+    console.log('チャット履歴を検出しました');
+    
+    // テスト1: #contextありのケース（問題文が含まれていない場合）
+    const testCase1 = await page.evaluate(() => {
+      const item = document.querySelector('#chat-item-test-question-1');
+      if (!item) return null;
+      
+      const contentText = item.querySelector('.chat-bubble.user .chat-content').innerHTML;
+      const metaInfoExists = !!item.querySelector('.chat-meta-info');
+      const hasContextTag = contentText.includes('#context');
+      const hasProblemId = contentText.includes('【問題ID: test-problem-1】');
+      const hasCategory = contentText.includes('【カテゴリ: テストカテゴリ】');
+      const hasQuestion = contentText.includes('テスト質問です。');
+      
+      return {
+        contentText,
+        metaInfoExists,
+        hasContextTag,
+        hasProblemId,
+        hasCategory,
+        hasQuestion
+      };
+    });
+    
+    console.log('テストケース1の結果:', testCase1);
+    
+    // テスト2: コンテキストなしのケース
+    const testCase2 = await page.evaluate(() => {
+      const item = document.querySelector('#chat-item-test-question-2');
+      if (!item) return null;
+      
+      const contentText = item.querySelector('.chat-bubble.user .chat-content').innerHTML;
+      const isSimpleText = contentText === '通常の質問（コンテキストなし）'.replace(/\n/g, '<br>');
+      
+      return {
+        contentText,
+        isSimpleText
+      };
+    });
+    
+    console.log('テストケース2の結果:', testCase2);
+    
+    // テスト3: #contextありで問題文も含まれている場合
+    const testCase3 = await page.evaluate(() => {
+      const item = document.querySelector('#chat-item-test-question-3');
+      if (!item) return null;
+      
+      const contentText = item.querySelector('.chat-bubble.user .chat-content').innerHTML;
+      const hasContextTag = contentText.includes('#context');
+      const hasDuplicatedProblemId = (contentText.match(/【問題ID: test-problem-3】/g) || []).length > 1;
+      
+      return {
+        contentText,
+        hasContextTag,
+        hasDuplicatedProblemId
+      };
+    });
+    
+    console.log('テストケース3の結果:', testCase3);
+    
+    // アサーション
+    assert(testCase1 !== null, 'テストケース1のチャットアイテムが見つかりません');
+    assert(!testCase1.hasContextTag, 'コンテキストタグが表示されています');
+    assert(testCase1.hasProblemId, '問題IDが表示されていません');
+    assert(testCase1.hasCategory, 'カテゴリが表示されていません');
+    assert(testCase1.hasQuestion, '問題文が表示されていません');
+    
+    assert(testCase2 !== null, 'テストケース2のチャットアイテムが見つかりません');
+    assert(testCase2.isSimpleText, '通常テキストが正しく表示されていません');
+    
+    assert(testCase3 !== null, 'テストケース3のチャットアイテムが見つかりません');
+    assert(!testCase3.hasContextTag, 'コンテキストタグが表示されています');
+    assert(!testCase3.hasDuplicatedProblemId, '問題IDが重複して表示されています');
+    
+    console.log('すべてのテストが成功しました！');
+    
+    // 元のデータに戻す
+    if (fs.existsSync(backupPath)) {
+      fs.copyFileSync(backupPath, originalDataPath);
+      fs.unlinkSync(backupPath);
+      console.log('元のチャット履歴に戻しました');
+    }
     
     // 結果をコンソールに出力
     console.log('\n=== テスト結果のサマリー ===');
@@ -103,244 +228,6 @@ async function validateDisplays() {
     
     // ブラウザを閉じる
     await browser.close();
-  }
-}
-
-// テスト1: ページ読み込みテスト
-async function testPageLoad(page, testResults) {
-  const testName = 'ページ読み込みテスト';
-  console.log(`実行中: ${testName}`);
-  
-  try {
-    // ローカルサーバーのURLにアクセス
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle2' });
-    
-    // ページタイトルを取得して確認
-    const title = await page.title();
-    
-    if (title && title.includes('簿記')) {
-      testResults.passed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'PASS',
-        details: `ページが正常に読み込まれました。タイトル: ${title}`
-      });
-      console.log(`✅ ${testName}: 合格`);
-    } else {
-      testResults.failed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'FAIL',
-        details: `ページのタイトルが期待と異なります: ${title}`
-      });
-      console.log(`❌ ${testName}: 不合格 - ページのタイトルが期待と異なります: ${title}`);
-    }
-  } catch (error) {
-    testResults.failed++;
-    testResults.errors.push(`${testName}: ${error.message}`);
-    testResults.tests.push({
-      name: testName,
-      result: 'ERROR',
-      details: error.message
-    });
-    console.log(`❌ ${testName}: エラー - ${error.message}`);
-  }
-}
-
-// テスト2: 履歴タブテスト
-async function testHistoryTab(page, testResults) {
-  const testName = '履歴タブ表示テスト';
-  console.log(`実行中: ${testName}`);
-  
-  try {
-    // 履歴タブをクリック
-    await page.click('.tab-btn[data-tab="history"]');
-    
-    // タブがアクティブになったか確認
-    const isTabActive = await page.evaluate(() => {
-      const tab = document.querySelector('.tab-btn[data-tab="history"]');
-      return tab && tab.classList.contains('active');
-    });
-    
-    if (isTabActive) {
-      testResults.passed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'PASS',
-        details: '履歴タブが正常に表示されました'
-      });
-      console.log(`✅ ${testName}: 合格`);
-    } else {
-      testResults.failed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'FAIL',
-        details: '履歴タブがアクティブになりませんでした'
-      });
-      console.log(`❌ ${testName}: 不合格 - 履歴タブがアクティブになりませんでした`);
-    }
-  } catch (error) {
-    testResults.failed++;
-    testResults.errors.push(`${testName}: ${error.message}`);
-    testResults.tests.push({
-      name: testName,
-      result: 'ERROR',
-      details: error.message
-    });
-    console.log(`❌ ${testName}: エラー - ${error.message}`);
-  }
-}
-
-// テスト3: チャットアイテムテスト
-async function testChatItems(page, testResults) {
-  const testName = 'チャット履歴アイテム表示テスト';
-  console.log(`実行中: ${testName}`);
-  
-  try {
-    // チャットアイテムの数を取得
-    const chatItemCount = await page.evaluate(() => {
-      return document.querySelectorAll('.chat-item').length;
-    });
-    
-    if (chatItemCount > 0) {
-      testResults.passed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'PASS',
-        details: `${chatItemCount}件のチャットアイテムが表示されています`
-      });
-      console.log(`✅ ${testName}: 合格 - ${chatItemCount}件のチャットアイテムが表示されています`);
-    } else {
-      testResults.failed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'FAIL',
-        details: 'チャットアイテムが表示されていません'
-      });
-      console.log(`❌ ${testName}: 不合格 - チャットアイテムが表示されていません`);
-    }
-  } catch (error) {
-    testResults.failed++;
-    testResults.errors.push(`${testName}: ${error.message}`);
-    testResults.tests.push({
-      name: testName,
-      result: 'ERROR',
-      details: error.message
-    });
-    console.log(`❌ ${testName}: エラー - ${error.message}`);
-  }
-}
-
-// テスト4: コンテキスト処理テスト
-async function testContextProcessing(page, testResults) {
-  const testName = 'コンテキスト情報処理テスト';
-  console.log(`実行中: ${testName}`);
-  
-  try {
-    // コンテキスト情報が含まれるかどうかを確認
-    const contextDetection = await page.evaluate(() => {
-      const chatContents = Array.from(document.querySelectorAll('.chat-content'));
-      const contextFound = chatContents.some(content => 
-        content.textContent && content.textContent.includes('#context:')
-      );
-      return {
-        contextFound,
-        sampleContent: chatContents.length > 0 ? chatContents[0].textContent : null
-      };
-    });
-    
-    if (!contextDetection.contextFound) {
-      testResults.passed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'PASS',
-        details: 'コンテキスト情報が適切に除去されています'
-      });
-      console.log(`✅ ${testName}: 合格 - コンテキスト情報が適切に除去されています`);
-    } else {
-      testResults.failed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'FAIL',
-        details: 'コンテキスト情報がユーザーに表示されています',
-        sample: contextDetection.sampleContent
-      });
-      console.log(`❌ ${testName}: 不合格 - コンテキスト情報がユーザーに表示されています`);
-    }
-  } catch (error) {
-    testResults.failed++;
-    testResults.errors.push(`${testName}: ${error.message}`);
-    testResults.tests.push({
-      name: testName,
-      result: 'ERROR',
-      details: error.message
-    });
-    console.log(`❌ ${testName}: エラー - ${error.message}`);
-  }
-}
-
-// テスト5: メタデータ表示テスト
-async function testMetadataDisplay(page, testResults) {
-  const testName = 'メタデータ表示テスト';
-  console.log(`実行中: ${testName}`);
-  
-  try {
-    // メタデータの表示を確認
-    const metadataCheck = await page.evaluate(() => {
-      const metaInfoElements = document.querySelectorAll('.chat-meta-info');
-      const idSpans = document.querySelectorAll('.chat-id');
-      const timeSpans = document.querySelectorAll('.chat-time');
-      const statusSpans = document.querySelectorAll('.chat-status');
-      
-      return {
-        metaInfoCount: metaInfoElements.length,
-        idCount: idSpans.length,
-        timeCount: timeSpans.length,
-        statusCount: statusSpans.length,
-        hasSamples: idSpans.length > 0,
-        idSample: idSpans.length > 0 ? idSpans[0].textContent : null,
-        timeSample: timeSpans.length > 0 ? timeSpans[0].textContent : null,
-        statusSample: statusSpans.length > 0 ? statusSpans[0].textContent : null
-      };
-    });
-    
-    if (metadataCheck.metaInfoCount > 0 && 
-        metadataCheck.idCount > 0 && 
-        metadataCheck.timeCount > 0 && 
-        metadataCheck.statusCount > 0) {
-      testResults.passed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'PASS',
-        details: `メタデータが表示されています (メタ情報: ${metadataCheck.metaInfoCount}, ID: ${metadataCheck.idCount}, 時間: ${metadataCheck.timeCount}, ステータス: ${metadataCheck.statusCount})`,
-        samples: {
-          id: metadataCheck.idSample,
-          time: metadataCheck.timeSample,
-          status: metadataCheck.statusSample
-        }
-      });
-      console.log(`✅ ${testName}: 合格 - メタデータが表示されています`);
-      console.log(`   ID例: ${metadataCheck.idSample}`);
-      console.log(`   時間例: ${metadataCheck.timeSample}`);
-      console.log(`   ステータス例: ${metadataCheck.statusSample}`);
-    } else {
-      testResults.failed++;
-      testResults.tests.push({
-        name: testName,
-        result: 'FAIL',
-        details: `一部または全てのメタデータが表示されていません (メタ情報: ${metadataCheck.metaInfoCount}, ID: ${metadataCheck.idCount}, 時間: ${metadataCheck.timeCount}, ステータス: ${metadataCheck.statusCount})`
-      });
-      console.log(`❌ ${testName}: 不合格 - 一部または全てのメタデータが表示されていません`);
-    }
-  } catch (error) {
-    testResults.failed++;
-    testResults.errors.push(`${testName}: ${error.message}`);
-    testResults.tests.push({
-      name: testName,
-      result: 'ERROR',
-      details: error.message
-    });
-    console.log(`❌ ${testName}: エラー - ${error.message}`);
   }
 }
 

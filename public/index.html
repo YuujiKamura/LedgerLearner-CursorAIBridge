@@ -266,6 +266,156 @@
             background-color: #2c3e50;
             color: #ecf0f1;
         }
+        
+        /* コンテキスト情報用のスタイル */
+        .context-details {
+            margin-bottom: 10px;
+            border-radius: 6px;
+            background-color: #f5f7fa;
+            overflow: hidden;
+        }
+        
+        .context-summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            position: relative;
+        }
+        
+        .context-summary:hover {
+            background-color: #edf2f7;
+        }
+        
+        .context-summary::-webkit-details-marker {
+            display: none;
+        }
+        
+        .context-summary::before {
+            content: '▶';
+            font-size: 10px;
+            margin-right: 8px;
+            transition: transform 0.3s;
+        }
+        
+        details[open] .context-summary::before {
+            transform: rotate(90deg);
+        }
+        
+        .context-content {
+            padding: 10px 12px;
+            border-top: 1px solid #e2e8f0;
+            background-color: #fff;
+        }
+        
+        /* 問題文と質問内容の区切りスタイル */
+        .context-content p {
+            margin: 0.5em 0;
+        }
+        
+        .context-content .problem-text {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #fffaf0;
+            border-left: 3px solid #ed8936;
+            font-size: 0.95em;
+        }
+        
+        .context-content .user-query {
+            margin-top: 12px;
+            padding: 8px;
+            background-color: #e6fffa;
+            border-left: 3px solid #319795;
+            font-size: 0.95em;
+        }
+        
+        /* 解答部分のスタイル */
+        .context-content .user-answer {
+            margin-top: 8px;
+            padding: 6px 8px;
+            background-color: #f0fff4;
+            border-left: 3px solid #48bb78;
+            font-style: italic;
+        }
+        
+        /* 質問内容のスタイル */
+        .context-content .question-content {
+            margin-top: 12px;
+            padding: 8px;
+            background-color: #ebf8ff;
+            border-left: 3px solid #4299e1;
+            font-weight: bold;
+        }
+        
+        .problem-id-badge, .category-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background-color: #e2e8f0;
+        }
+        
+        .problem-id-badge {
+            background-color: #ebf4ff;
+            color: #3182ce;
+        }
+        
+        .category-badge {
+            background-color: #e6fffa;
+            color: #319795;
+        }
+        
+        /* ダークテーマのスタイル */
+        body.dark-theme .context-details {
+            background-color: #2d3748;
+        }
+        
+        body.dark-theme .context-summary {
+            color: #e2e8f0;
+        }
+        
+        body.dark-theme .context-summary:hover {
+            background-color: #4a5568;
+        }
+        
+        body.dark-theme .context-content {
+            border-top-color: #4a5568;
+            background-color: #2c3e50;
+        }
+        
+        body.dark-theme .context-content .problem-text {
+            background-color: #3c2a1b;
+            border-left-color: #dd6b20;
+        }
+        
+        body.dark-theme .context-content .user-query {
+            background-color: #234e52;
+            border-left-color: #38b2ac;
+        }
+        
+        body.dark-theme .context-content .user-answer {
+            background-color: #22543d;
+            border-left-color: #48bb78;
+        }
+        
+        body.dark-theme .context-content .question-content {
+            background-color: #2a4365;
+            border-left-color: #4299e1;
+        }
+        
+        body.dark-theme .problem-id-badge {
+            background-color: #2a4365;
+            color: #90cdf4;
+        }
+        
+        body.dark-theme .category-badge {
+            background-color: #234e52;
+            color: #81e6d9;
+        }
     </style>
 </head>
 <body>
@@ -527,11 +677,12 @@
                             chatItem.className = 'chat-item';
                             chatItem.id = `chat-item-${item.questionId}`;
                             
-                            // 質問部分を加工して表示（コンテキスト情報を除去）
+                            // 質問部分を加工して表示（コンテキスト情報を抽出して整形）
                             let displayQuestion = item.question;
-                            if (displayQuestion && displayQuestion.includes('#context:')) {
-                                // コンテキスト情報を除去し、実際の質問部分のみを表示
-                                displayQuestion = displayQuestion.replace(/#context:.*?(\n|\r|$)/g, '');
+                            if (displayQuestion) {
+                                // context_parser.jsの関数を使用
+                                const parsedContext = extractContextInfo(displayQuestion);
+                                displayQuestion = parsedContext.displayText;
                             }
                             
                             const questionBubble = createChatBubble(displayQuestion, true);
@@ -971,16 +1122,82 @@
                 const content = document.createElement('div');
                 content.className = 'chat-content';
                 
-                // コンテキスト情報を除去（#context:で始まる行）
+                // コンテキスト情報を処理
                 let displayMessage = message;
+                let contextInfo = null;
+                
                 if (isUser && displayMessage) {
-                    // コンテキスト情報を削除（#context:から始まり、改行までを削除）
-                    displayMessage = displayMessage.replace(/#context:.*?(\n|\r|$)/g, '');
+                    // context_parser.jsの関数を使用
+                    const parsedContext = extractContextInfo(displayMessage);
+                    displayMessage = parsedContext.displayText;
+                    contextInfo = parsedContext;
+                    
                     // 先頭の空行を削除
-                    displayMessage = displayMessage.replace(/^\s*[\r\n]+/g, '');
+                    displayMessage = trimLeadingEmptyLines(displayMessage);
                 }
                 
-                content.innerHTML = displayMessage.replace(/\n/g, '<br>');
+                // 問題IDとカテゴリがある場合は折りたたみ可能な要素に表示
+                if (isUser && contextInfo && contextInfo.problemId) {
+                    // 問題メタデータ用の折りたたみ要素を作成
+                    const contextDetails = document.createElement('details');
+                    contextDetails.className = 'context-details';
+                    
+                    // 折りたたみ時に表示されるサマリー要素
+                    const contextSummary = document.createElement('summary');
+                    contextSummary.className = 'context-summary';
+                    contextSummary.innerHTML = `問題情報 <span class="problem-id-badge">ID: ${contextInfo.problemId}</span>`;
+                    if (contextInfo.category) {
+                        contextSummary.innerHTML += ` <span class="category-badge">${contextInfo.category}</span>`;
+                    }
+                    
+                    // 折りたたみ内容を作成
+                    const contextContent = document.createElement('div');
+                    contextContent.className = 'context-content';
+                    
+                    // 問題文をパース（正規表現で問題ID・カテゴリの行を取り除く）
+                    let cleanMessage = displayMessage.replace(/^【問題ID:.*】.*\n/m, '');
+                    
+                    // 問題文、ユーザー解答、質問内容を分離
+                    const problemTextMatch = cleanMessage.match(/^(.*?)(\n\n私の解答：.*?)?(\n\n質問内容：.*)?$/s);
+                    
+                    if (problemTextMatch) {
+                        // 問題文（必ず存在）
+                        const problemText = document.createElement('div');
+                        problemText.className = 'problem-text';
+                        problemText.innerHTML = problemTextMatch[1].trim().replace(/\n/g, '<br>');
+                        contextContent.appendChild(problemText);
+                        
+                        // ユーザーの解答（存在する場合）
+                        if (problemTextMatch[2]) {
+                            const userAnswer = document.createElement('div');
+                            userAnswer.className = 'user-answer';
+                            userAnswer.innerHTML = problemTextMatch[2].trim().replace(/\n/g, '<br>');
+                            contextContent.appendChild(userAnswer);
+                        }
+                        
+                        // 質問内容（存在する場合）
+                        if (problemTextMatch[3]) {
+                            const questionContent = document.createElement('div');
+                            questionContent.className = 'question-content';
+                            // 「質問内容：」の部分を除去
+                            const questionText = problemTextMatch[3].replace(/^\n\n質問内容：\s*/i, '');
+                            questionContent.innerHTML = questionText.trim().replace(/\n/g, '<br>');
+                            contextContent.appendChild(questionContent);
+                        }
+                    } else {
+                        // 正規表現にマッチしない場合はそのまま表示
+                        contextContent.innerHTML = cleanMessage.replace(/\n/g, '<br>');
+                    }
+                    
+                    contextDetails.appendChild(contextSummary);
+                    contextDetails.appendChild(contextContent);
+                    content.appendChild(contextDetails);
+                } else {
+                    // 非問題コンテキストの場合は通常表示
+                    const messageText = document.createElement('div');
+                    messageText.innerHTML = displayMessage.replace(/\n/g, '<br>');
+                    content.appendChild(messageText);
+                }
                 
                 bubble.appendChild(header);
                 bubble.appendChild(content);
@@ -1026,6 +1243,7 @@
             }
         });
     </script>
+    <script src="/js/context_parser.js"></script>
     <script src="/js/bookkeeping.js"></script>
 </body>
 </html> 

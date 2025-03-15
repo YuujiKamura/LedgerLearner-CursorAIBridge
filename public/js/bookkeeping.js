@@ -211,26 +211,44 @@ class BookkeepingApp {
     console.log('問題リストを更新しました。問題数:', this.problems.length); // デバッグ用
   }
 
-  // 問題に関する質問履歴があるかチェック
+  // 質問履歴があるかチェック
   checkQuestionHistory(problemId) {
+    // statusが 'answered' または 'completed' で、かつanswerフィールドが存在する項目を「回答済み」とみなす
     return this.chatHistory.some(item => {
       try {
         if (item.question && item.question.includes(`問題ID: ${problemId}`)) {
-          return true;
+          return item.answer && (item.status === 'answered' || item.status === 'completed');
         }
         if (item.question && item.question.includes('#context:')) {
           // コンテキスト情報からJSONを抽出して解析
-          const contextMatch = item.question.match(/#context: (.+?)(\n|\r|$)/);
-          if (contextMatch) {
-            const contextData = JSON.parse(contextMatch[1]);
-            return contextData.problemId === problemId;
-          }
+          const contextData = this.parseContextData(item.question);
+          const hasAnswer = item.answer && (item.status === 'answered' || item.status === 'completed');
+          return contextData && contextData.problemId === problemId && hasAnswer;
         }
         return false;
       } catch (e) {
+        console.error('質問履歴チェック中にエラーが発生しました:', e);
         return false;
       }
     });
+  }
+
+  // コンテキストデータをパースする（問題IDの抽出用）
+  parseContextData(questionText) {
+    try {
+      if (!questionText || !questionText.includes('#context:')) {
+        return null;
+      }
+      // コンテキスト情報からJSONを抽出して解析
+      const contextMatch = questionText.match(/#context: (.+?)(\n|\r|$)/);
+      if (contextMatch) {
+        return JSON.parse(contextMatch[1]);
+      }
+      return null;
+    } catch (e) {
+      console.error('コンテキストデータのパース中にエラーが発生しました:', e);
+      return null;
+    }
   }
 
   // カスタムスタイルを追加
