@@ -375,7 +375,7 @@ class BookkeepingApp {
         
         <div class="progress-info">
           <div class="progress-text" id="progress-text">
-            正解した問題数
+            正解した問題数：
           </div>
           
           <div class="progress-details">
