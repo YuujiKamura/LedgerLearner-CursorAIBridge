@@ -356,11 +356,18 @@ class BookkeepingApp {
       
       // 進捗状況を表示
       const completedCount = await this.getCompletedCount();
+      const selectCompletedCount = await this.getSelectCompletedCount();
+      const inputCompletedCount = await this.getInputCompletedCount();
       const totalProblems = this.problems.length;
+      
       // 進捗率が100%を超えないようにする
       const percentage = Math.min(Math.round((completedCount / totalProblems) * 100), 100);
+      const selectPercentage = Math.min(Math.round((selectCompletedCount / totalProblems) * 100), 100);
+      const inputPercentage = Math.min(Math.round((inputCompletedCount / totalProblems) * 100), 100);
       
       console.log(`進捗状況: ${completedCount}/${totalProblems} 問解答済み (${percentage}%)`);
+      console.log(`選択式進捗: ${selectCompletedCount}/${totalProblems} 問解答済み (${selectPercentage}%)`);
+      console.log(`入力式進捗: ${inputCompletedCount}/${totalProblems} 問解答済み (${inputPercentage}%)`);
       
       // リストを更新
       listContainer.innerHTML = `
@@ -372,6 +379,22 @@ class BookkeepingApp {
           </div>
           <div class="progress-bar-container">
             <div class="progress-bar" id="progress-bar" style="width: ${percentage}%;"></div>
+          </div>
+          
+          <div class="progress-details">
+            <div class="progress-row">
+              <div class="progress-label">選択式: ${selectCompletedCount}/${totalProblems} (${selectPercentage}%)</div>
+              <div class="progress-bar-container select-progress">
+                <div class="progress-bar progress-bar-select" style="width: ${selectPercentage}%;"></div>
+              </div>
+            </div>
+            
+            <div class="progress-row">
+              <div class="progress-label">入力式: ${inputCompletedCount}/${totalProblems} (${inputPercentage}%)</div>
+              <div class="progress-bar-container input-progress">
+                <div class="progress-bar progress-bar-input" style="width: ${inputPercentage}%;"></div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -698,6 +721,46 @@ class BookkeepingApp {
     
     return Math.min(uniqueProblemIds.size, this.problems.length);
   }
+  
+  // 選択式で正解した問題数を取得
+  async getSelectCompletedCount() {
+    const progress = await this.getProgress();
+    
+    // 選択式で正解した問題のIDのみを抽出
+    const selectCompletedIds = new Set();
+    
+    Object.entries(progress).forEach(([id, p]) => {
+      if (id.startsWith('003')) {
+        // 選択式の完了条件：countCorrectBySelect > 0
+        if (p.countCorrectBySelect > 0) {
+          selectCompletedIds.add(id);
+        }
+      }
+    });
+    
+    console.log('Select completed count:', selectCompletedIds.size);
+    return Math.min(selectCompletedIds.size, this.problems.length);
+  }
+  
+  // 入力式で正解した問題数を取得
+  async getInputCompletedCount() {
+    const progress = await this.getProgress();
+    
+    // 入力式で正解した問題のIDのみを抽出
+    const inputCompletedIds = new Set();
+    
+    Object.entries(progress).forEach(([id, p]) => {
+      if (id.startsWith('003')) {
+        // 入力式の完了条件：countCorrectByInput > 0
+        if (p.countCorrectByInput > 0) {
+          inputCompletedIds.add(id);
+        }
+      }
+    });
+    
+    console.log('Input completed count:', inputCompletedIds.size);
+    return Math.min(inputCompletedIds.size, this.problems.length);
+  }
 
   // 進捗率を計算
   async getProgressPercentage() {
@@ -951,12 +1014,7 @@ class BookkeepingApp {
         }
       });
       
-      // 小分類が選択されたときに入力フォームに反映
-      debitSubcategory.addEventListener('change', () => {
-        if (debitSubcategory.value) {
-          document.getElementById('debit-account-input').value = debitSubcategory.value;
-        }
-      });
+      // 小分類が選択されたときのイベントリスナーは削除
     }
     
     // 貸方の大分類が変更されたときのイベント
@@ -987,12 +1045,7 @@ class BookkeepingApp {
         }
       });
       
-      // 小分類が選択されたときに入力フォームに反映
-      creditSubcategory.addEventListener('change', () => {
-        if (creditSubcategory.value) {
-          document.getElementById('credit-account-input').value = creditSubcategory.value;
-        }
-      });
+      // 小分類が選択されたときのイベントリスナーは削除
     }
     
     // 解答ボタンのイベントリスナー更新
