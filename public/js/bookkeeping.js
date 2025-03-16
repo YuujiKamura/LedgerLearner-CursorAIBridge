@@ -375,19 +375,16 @@ class BookkeepingApp {
           <h3>問題一覧</h3>
           
           <div class="progress-info">
-            <div class="progress-text" id="progress-text">
-              正答数：
-            </div>
             <div class="progress-details">
               <div class="progress-row">
-                <div class="progress-label">選択式: ${selectCompletedCount}/${totalProblems} (${selectPercentage}%)</div>
+                <div class="progress-label">正答数-選択式: ${selectCompletedCount}/${totalProblems} (${selectPercentage}%)</div>
                 <div class="progress-bar-container select-progress">
                   <div class="progress-bar progress-bar-select" style="width: ${selectPercentage}%;"></div>
                 </div>
               </div>
               
               <div class="progress-row">
-                <div class="progress-label">入力式: ${inputCompletedCount}/${totalProblems} (${inputPercentage}%)</div>
+                <div class="progress-label">正答数-入力式: ${inputCompletedCount}/${totalProblems} (${inputPercentage}%)</div>
                 <div class="progress-bar-container input-progress">
                   <div class="progress-bar progress-bar-input" style="width: ${inputPercentage}%;"></div>
                 </div>
