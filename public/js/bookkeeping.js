@@ -1069,6 +1069,13 @@ class BookkeepingApp {
       return;
     }
     
+    // 入力方法を判定 (追加)
+    const answerMethod = {
+      debitByInput: !!userDebitInput,
+      creditByInput: !!userCreditInput,
+      isInputOnly: !!userDebitInput && !!userCreditInput
+    };
+    
     let isCorrect = false;
     let matchedAnswer = null;
     
@@ -1120,8 +1127,8 @@ class BookkeepingApp {
         `;
       }
       
-      // 進捗を保存
-      this.saveProgress(problem.id, true);
+      // 進捗を保存（入力方法の情報を追加）
+      this.saveProgress(problem.id, true, answerMethod);
       
       // 問題リストを更新（進捗表示のため）
       this.updateProblemList();
@@ -1130,7 +1137,7 @@ class BookkeepingApp {
         <div class="incorrect">✗ 不正解です。もう一度試してください。</div>
       `;
       // 進捗を保存（不正解）
-      this.saveProgress(problem.id, false);
+      this.saveProgress(problem.id, false, answerMethod);
     }
   }
   
@@ -1333,18 +1340,41 @@ class BookkeepingApp {
   }
 
   // 進捗を保存
-  saveProgress(problemId, isCorrect) {
+  saveProgress(problemId, isCorrect, answerMethod) {
     const progress = this.getProgress();
     
     // 問題IDを文字列として扱う
     const id = problemId.toString();
     
-    if (!progress[id] || !progress[id].isCorrect) {
+    // 問題の記録を初期化または取得
+    if (!progress[id]) {
       progress[id] = {
-        isCorrect: isCorrect,
-        attemptCount: (progress[id]?.attemptCount || 0) + 1,
-        lastAttempt: new Date().toISOString()
+        isCorrect: false,
+        countCorrect: 0,         // 正解回数の合計
+        countCorrectByInput: 0,  // 入力のみでの正解回数の合計
+        lastAttempt: null,
+        answerMethod: null
       };
+    }
+    
+    // 最終挑戦日時を更新
+    progress[id].lastAttempt = new Date().toISOString();
+    
+    // 回答方法を記録
+    progress[id].answerMethod = answerMethod;
+    
+    // 正解の場合
+    if (isCorrect) {
+      // 正解フラグを設定
+      progress[id].isCorrect = true;
+      
+      // 正解回数をカウントアップ
+      progress[id].countCorrect = (progress[id].countCorrect || 0) + 1;
+      
+      // 入力のみの場合、入力正解回数もカウントアップ
+      if (answerMethod && answerMethod.isInputOnly) {
+        progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
+      }
     }
     
     localStorage.setItem('bookkeepingProgress', JSON.stringify(progress));
