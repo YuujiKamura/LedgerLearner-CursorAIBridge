@@ -761,65 +761,67 @@ class BookkeepingApp {
       ).join('');
       
       viewContainer.innerHTML = `
-        <div class="problem-header">
-          <h3>${titleIcons.length > 0 ? titleIcons + ' ' : ''}問題 ${problem.problemNumber || problem.id}: ${problem.category}</h3>
-          <div class="problem-info">
-            <span class="problem-id">ID: ${problem.id}</span>
-          </div>
-        </div>
-        <div class="problem-content">
-          <p class="problem-text">${problem.question}</p>
-        </div>
-        
-        <div class="journal-entry">
-          <div class="entry-row">
-            <label><strong>【借方】</strong></label>
-            <div class="flex-column-container">
-              <div class="input-row">
-                <input type="text" id="debit-account-input" placeholder="科目名を入力" class="form-control">
-              </div>
-              <div class="input-row selector-row">
-                <div class="or-label">または</div>
-                <div class="input-group">
-                  <select id="debit-category" class="form-control">
-                    <option value="">大分類を選択</option>
-                    ${categoryOptions}
-                  </select>
-                </div>
-                <div class="input-group">
-                  <select id="debit-subcategory" class="form-control" disabled>
-                    <option value="">小分類を選択してください</option>
-                  </select>
-                </div>
-              </div>
+        <div class="problem-container" data-id="${problem.id}">
+          <div class="problem-header">
+            <h3>${titleIcons.length > 0 ? titleIcons + ' ' : ''}問題 ${problem.problemNumber || problem.id}: ${problem.category}</h3>
+            <div class="problem-info">
+              <span class="problem-id">ID: ${problem.id}</span>
             </div>
+          </div>
+          <div class="problem-content">
+            <p class="problem-text">${problem.question}</p>
           </div>
           
-          <div class="entry-row" style="margin-top: 15px;">
-            <label><strong>【貸方】</strong></label>
-            <div class="flex-column-container">
-              <div class="input-row">
-                <input type="text" id="credit-account-input" placeholder="科目名を入力" class="form-control">
-              </div>
-              <div class="input-row selector-row">
-                <div class="or-label">または</div>
-                <div class="input-group">
-                  <select id="credit-category" class="form-control">
-                    <option value="">大分類を選択</option>
-                    ${categoryOptions}
-                  </select>
+          <div class="journal-entry">
+            <div class="entry-row">
+              <label><strong>【借方】</strong></label>
+              <div class="flex-column-container">
+                <div class="input-row">
+                  <input type="text" id="debit-account-input" placeholder="科目名を入力" class="form-control">
                 </div>
-                <div class="input-group">
-                  <select id="credit-subcategory" class="form-control" disabled>
-                    <option value="">小分類を選択してください</option>
-                  </select>
+                <div class="input-row selector-row">
+                  <div class="or-label">または</div>
+                  <div class="input-group">
+                    <select id="debit-category" class="form-control">
+                      <option value="">大分類を選択</option>
+                      ${categoryOptions}
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <select id="debit-subcategory" class="form-control" disabled>
+                      <option value="">小分類を選択してください</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="entry-row" style="margin-top: 15px;">
+              <label><strong>【貸方】</strong></label>
+              <div class="flex-column-container">
+                <div class="input-row">
+                  <input type="text" id="credit-account-input" placeholder="科目名を入力" class="form-control">
+                </div>
+                <div class="input-row selector-row">
+                  <div class="or-label">または</div>
+                  <div class="input-group">
+                    <select id="credit-category" class="form-control">
+                      <option value="">大分類を選択</option>
+                      ${categoryOptions}
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <select id="credit-subcategory" class="form-control" disabled>
+                      <option value="">小分類を選択してください</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <button id="check-answer-btn" class="btn">解答する</button>
+          <div class="answer-result" style="display: none;"></div>
         </div>
-        <button id="check-answer-btn" class="btn">解答する</button>
-        <div class="answer-result" style="display: none;"></div>
       `;
       
       // 説明エリアをクリア
