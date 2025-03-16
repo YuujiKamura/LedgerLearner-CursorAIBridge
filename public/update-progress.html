@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>進捗データ更新</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      line-height: 1.6;
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .update-panel {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    #result {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    .btn:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>進捗データ更新ツール</h1>
+    
+    <div class="update-panel">
+      <h2>isCorrect=trueの問題を更新</h2>
+      <p>
+        このツールは、進捗データの中で<code>isCorrect=true</code>になっている問題について、
+        <code>countCorrectBySelect=1</code>に設定します。
+      </p>
+      <button id="update-btn" class="btn">更新を実行</button>
+    </div>
+    
+    <h2>実行結果</h2>
+    <div id="result">結果がここに表示されます...</div>
+  </div>
+  
+  <script>
+    // 進捗データを取得
+    function getProgress() {
+      try {
+        const progressData = JSON.parse(localStorage.getItem('bookkeepingProgress') || '{}');
+        return progressData;
+      } catch (error) {
+        console.error('進捗データの読み込みに失敗しました:', error);
+        return {};
+      }
+    }
+    
+    // 進捗データを更新
+    function updateProgress() {
+      // 現在の進捗データを取得
+      const progress = getProgress();
+      
+      // 結果出力用の要素
+      const resultElement = document.getElementById('result');
+      resultElement.innerHTML = '更新処理を開始します...\n';
+      
+      // 元のデータをバックアップ
+      const backupData = JSON.stringify(progress);
+      
+      // 変更カウンター
+      let changedCount = 0;
+      let totalCount = 0;
+      
+      // 各問題の進捗をチェック
+      for (const [problemId, data] of Object.entries(progress)) {
+        totalCount++;
+        
+        // 進捗情報を表示
+        resultElement.innerHTML += `問題ID: ${problemId}, isCorrect: ${data.isCorrect}, countCorrectBySelect: ${data.countCorrectBySelect || 0}\n`;
+        
+        // isCorrectがtrueでcountCorrectBySelectが設定されていない場合
+        if (data.isCorrect === true) {
+          // countCorrectBySelectが0または未設定の場合のみ変更
+          if (!data.countCorrectBySelect || data.countCorrectBySelect === 0) {
+            data.countCorrectBySelect = 1;
+            changedCount++;
+            resultElement.innerHTML += `  => 更新: countCorrectBySelect = 1\n`;
+          }
+        }
+      }
+      
+      // 更新されたデータを保存
+      localStorage.setItem('bookkeepingProgress', JSON.stringify(progress));
+      resultElement.innerHTML += `\n更新完了: ${totalCount}件中、${changedCount}件の問題を更新しました\n`;
+      
+      // バックアップデータを表示
+      resultElement.innerHTML += `\nバックアップデータ:\n${backupData}\n`;
+      
+      return progress;
+    }
+    
+    // ボタンのイベントリスナー
+    document.getElementById('update-btn').addEventListener('click', function() {
+      updateProgress();
+      alert('処理が完了しました。ページを再読み込みして変更を反映してください。');
+    });
+  </script>
+</body>
+</html> 
