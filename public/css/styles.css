@@ -113,18 +113,19 @@
 }
 
 .progress-bar {
+    height: 8px;
+    background-color: #28a745;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-container {
     width: 100%;
     height: 8px;
     background-color: #e9ecef;
     border-radius: 4px;
     margin: 10px 0;
     overflow: hidden;
-}
-
-.progress {
-    height: 100%;
-    background-color: #28a745;
-    transition: width 0.3s ease;
 }
 
 /* ダークテーマ対応 */
@@ -161,8 +162,12 @@ body.dark-theme .incorrect {
     color: #f5b7b7;
 }
 
-body.dark-theme .progress-bar {
+body.dark-theme .progress-bar-container {
     background-color: #34495e;
+}
+
+body.dark-theme .progress-bar {
+    background-color: #2ecc71;
 }
 
 /* レスポンシブデザイン */
