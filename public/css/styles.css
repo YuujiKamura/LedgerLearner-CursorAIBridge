@@ -279,4 +279,35 @@ body.dark-theme .problem-list-block {
     border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     margin-top: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f8f9fa;
+}
+
+/* Webkit (Chrome, Safari, Edge) 用のスクロールバースタイル */
+.problem-list-block::-webkit-scrollbar {
+    width: 8px;
+}
+
+.problem-list-block::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.problem-list-block::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+}
+
+/* ダークテーマ用スクロールバー */
+body.dark-theme .problem-list-block {
+    scrollbar-color: #666 #2c3e50;
+}
+
+body.dark-theme .problem-list-block::-webkit-scrollbar-track {
+    background: #2c3e50;
+}
+
+body.dark-theme .problem-list-block::-webkit-scrollbar-thumb {
+    background-color: #666;
 } 
