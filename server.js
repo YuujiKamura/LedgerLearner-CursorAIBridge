@@ -152,6 +152,64 @@ app.get('/api/problems', async (req, res) => {
   }
 });
 
+// 進捗データを取得するAPIエンドポイント
+app.get('/api/progress', async (req, res) => {
+  try {
+    // 進捗データファイルのパス
+    const progressFilePath = path.join(__dirname, 'public', 'data', 'user_progress.json');
+    console.log(`[API] 進捗データファイルパス: ${progressFilePath}`);
+    
+    // ファイルが存在するか確認
+    try {
+      await fs.access(progressFilePath);
+    } catch (err) {
+      // ファイルが存在しない場合は空のオブジェクトを返す
+      console.log('[API] 進捗データファイルが存在しないため、新規作成します');
+      await fs.writeFile(progressFilePath, JSON.stringify({}), 'utf8');
+      return res.json({});
+    }
+    
+    // ファイルが存在する場合はデータを読み込み
+    const progressData = await fs.readFile(progressFilePath, 'utf8');
+    console.log(`[API] 読み込んだ進捗データサイズ: ${progressData.length}バイト`);
+    
+    const parsedData = JSON.parse(progressData);
+    console.log(`[API] 進捗データのエントリ数: ${Object.keys(parsedData).length}件`);
+    
+    res.json(parsedData);
+  } catch (error) {
+    console.error('[API] 進捗データの取得中にエラーが発生しました:', error);
+    res.status(500).json({ error: '進捗データの取得に失敗しました' });
+  }
+});
+
+// 進捗データを保存するAPIエンドポイント
+app.post('/api/progress', async (req, res) => {
+  try {
+    // テスト実行時に安全チェックを行う
+    ensureTestSafetyCheck();
+    
+    const progressData = req.body;
+    console.log('[API] 進捗データ保存リクエストを受信しました');
+    
+    // データディレクトリの存在確認
+    const dataDir = path.join(__dirname, 'public', 'data');
+    await ensureDirectoryExists(dataDir);
+    
+    // 進捗データファイルのパス
+    const progressFilePath = path.join(dataDir, 'user_progress.json');
+    
+    // データを保存
+    await fs.writeFile(progressFilePath, JSON.stringify(progressData, null, 2), 'utf8');
+    console.log(`[API] 進捗データを保存しました: ${Object.keys(progressData).length}件`);
+    
+    res.json({ success: true, message: '進捗データを保存しました' });
+  } catch (error) {
+    console.error('[API] 進捗データの保存中にエラーが発生しました:', error);
+    res.status(500).json({ error: '進捗データの保存に失敗しました' });
+  }
+});
+
 // サーバー再起動APIエンドポイント
 app.post('/api/restart-server', async (req, res) => {
   try {

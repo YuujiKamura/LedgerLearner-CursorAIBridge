@@ -273,102 +273,109 @@ class BookkeepingApp {
   }
 
   // 問題リストを更新
-  updateProblemList() {
+  async updateProblemList() {
     try {
-      console.log('問題リストの更新を開始...');
+      console.log('updateProblemList: 問題リストの更新を開始...');
       
-      // 問題リストの要素があるか確認
       const listContainer = document.querySelector('#bookkeeping-tab .problem-list');
-      if (!listContainer) {
-        console.error('問題リストのコンテナが見つかりません');
-        return;
-      }
-      
-      // 問題データがあるか確認
-      if (!this.problems || this.problems.length === 0) {
-        console.warn('問題データがありません');
-        listContainer.innerHTML = `
-          <h3>問題一覧</h3>
-          <p>問題データがありません。</p>
-        `;
-        return;
-      }
+      if (!listContainer) return;
       
       // 進捗データを取得
-      const progress = this.getProgress();
+      const progress = await this.getProgress();
+      console.log('updateProblemList: 取得した進捗データ:', progress);
       
-      // カテゴリーごとに問題をグループ化
-      const categoryMap = {};
-      const categoryOrder = [
-        '現金・預金', '商品売買', '固定資産', '手形取引', 
-        '収益費用', '資産負債', '決算整理', '資本取引', 'その他'
-      ];
-      
-      // 数値の比較関数（IDを数値として比較）
-      const compareIds = (a, b) => {
-        return a.id.localeCompare(b.id);
-      };
-      
-      // 問題をカテゴリーごとに分類
+      // カテゴリー別に問題を分類
+      const categories = {};
       this.problems.forEach(problem => {
-        const category = problem.category;
-        if (!categoryMap[category]) {
-          categoryMap[category] = [];
+        if (!categories[problem.category]) {
+          categories[problem.category] = [];
         }
-        categoryMap[category].push(problem);
+        categories[problem.category].push(problem);
       });
       
-      // 各カテゴリー内で問題をID順にソート
-      Object.keys(categoryMap).forEach(category => {
-        categoryMap[category].sort(compareIds);
-      });
-      
-      console.log('問題リストのHTMLを生成...');
+      // カテゴリー別のHTMLを生成
       let categoryHtml = '';
       
-      // カテゴリー順に問題リストを生成
-      categoryOrder.forEach((category, index) => {
-        if (categoryMap[category] && categoryMap[category].length > 0) {
-          const categoryId = `category-${index}`;
-          const problems = categoryMap[category];
+      Object.entries(categories).forEach(([category, problems]) => {
+        // カテゴリーごとに問題アイテムのHTMLを生成
+        const problemItems = problems.map(problem => {
+          const problemProgress = progress[problem.id] || {};
+          const isSolved = problemProgress.isCorrect || 
+                          problemProgress.countCorrectBySelect > 0 || 
+                          problemProgress.countCorrectByInput > 0;
           
-          // カテゴリーごとに正解数をカウント
-          const solvedCount = problems.filter(p => progress[p.id]?.isCorrect).length;
+          const hasQuestionHistory = this.checkQuestionHistory(problem.id);
           
-          categoryHtml += `
-            <div class="category-section">
-              <div class="category-header" data-category="${categoryId}">
-                <span class="category-arrow">▶</span>
-                <span class="category-name">${category}</span>
-                <span class="category-progress">(${solvedCount}/${problems.length})</span>
+          // 質問履歴アイコン（あれば表示）
+          const historyIcon = hasQuestionHistory ? 
+            `<span class="history-icon" title="質問履歴あり">❓</span>` : '';
+          
+          // チェックマークアイコン（解決済みの場合）
+          const checkMark = isSolved ? 
+            `<span class="check-mark" title="解答済み">✓</span>` : '';
+          
+          return `
+            <li class="problem-item ${isSolved ? 'solved' : ''}" data-id="${problem.id}">
+              ${problem.title || `${problem.category} #${problem.id}`}
+              <div class="icons">
+                ${checkMark}
+                ${historyIcon}
               </div>
-              <ul class="category-content problem-list-items" data-category="${categoryId}" style="display: none;">
-                ${problems.map(problem => {
-                  // 問題に関する質問履歴があるかチェック
-                  const hasQuestionHistory = this.checkQuestionHistory(problem.id);
-                  
-                  return `
-                  <li class="problem-item ${progress[problem.id]?.countCorrectBySelect > 0 ? 'solved' : ''}" data-id="${problem.id}">
-                    ${problem.id.substring(problem.id.length - 4)} ${problem.category}
-                    <span class="icons">
-                      ${progress[problem.id]?.countCorrectBySelect > 0 ? '<span class="check-mark">✓</span>' : ''}
-                      ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
-                    </span>
-                  </li>
-                `}).join('')}
+            </li>
+          `;
+        }).join('');
+        
+        // カテゴリーセクションのHTML
+        const collapsed = false; // 初期状態で折りたたむかどうか
+        
+        // カテゴリーごとに正解数をカウント
+        const solvedCount = problems.filter(p => {
+          const problemProgress = progress[p.id];
+          // IDが003で始まるかどうかに関わらず、そのままIDを使用
+          return problemProgress && (
+            problemProgress.isCorrect || 
+            problemProgress.countCorrectBySelect > 0 || 
+            problemProgress.countCorrectByInput > 0
+          );
+        }).length;
+        
+        categoryHtml += `
+          <div class="category-section">
+            <div class="category-header" data-category="${category}">
+              <span class="category-name">${category}</span>
+              <span class="category-progress">(${solvedCount}/${problems.length})</span>
+            </div>
+            <div class="category-content" ${collapsed ? 'style="display: none;"' : ''}>
+              <ul class="problem-list-items">
+                ${problemItems}
               </ul>
             </div>
-          `;
-        }
+          </div>
+        `;
       });
       
+      // 進捗状況を表示
+      const completedCount = await this.getCompletedCount();
+      const totalProblems = this.problems.length;
+      // 進捗率が100%を超えないようにする
+      const percentage = Math.min(Math.round((completedCount / totalProblems) * 100), 100);
+      
+      console.log(`進捗状況: ${completedCount}/${totalProblems} 問解答済み (${percentage}%)`);
+      
+      // リストを更新
       listContainer.innerHTML = `
         <h3>問題一覧</h3>
-        <div class="progress-bar">
-          <div class="progress" style="width: ${this.getProgressPercentage()}%"></div>
+        
+        <div class="progress-info">
+          <div class="progress-text" id="progress-text">
+            ${completedCount}/${totalProblems} 問解答済み (${percentage}%)
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="progress-bar" style="width: ${percentage}%;"></div>
+          </div>
         </div>
-        <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問選択肢で正解</p>
-        <div class="category-list">
+        
+        <div class="problem-categories">
           ${categoryHtml}
         </div>
       `;
@@ -648,107 +655,55 @@ class BookkeepingApp {
     document.head.appendChild(styleElement);
   }
 
-  // 進捗データを取得
-  getProgress() {
+  // 進捗データを取得（サーバーから）
+  async getProgress() {
+    console.log('getProgress called');
     try {
-      const progressData = JSON.parse(localStorage.getItem('bookkeepingProgress') || '{}');
-      
-      // 新しい形式のIDに対応するための変換処理
-      const updatedProgressData = {};
-      
-      // 古いID形式（数字のみ）から新しいID形式（003XXYY）への変換マップ
-      const idMap = {
-        // 現金・預金
-        "1741925931164": "0030101", // 問題ID 2
-        "1742017001001": "0030102", // 問題ID 10
-        "1742017001002": "0030103", // 問題ID 11
-        "1742017001003": "0030104", // 問題ID 12
-        "1742017001028": "0030105", // 問題ID 37
-        
-        // 商品売買
-        "1741927802262": "0030201", // 問題ID 5
-        "1741931225689": "0030202", // 問題ID 9
-        "1742017001005": "0030203", // 問題ID 14
-        "1742017001006": "0030204", // 問題ID 15
-        "1742017001007": "0030205", // 問題ID 16
-        "1742017001008": "0030206", // 問題ID 17
-        "1742017001030": "0030207", // 問題ID 39
-        
-        // 固定資産
-        "1741930082234": "0030301", // 問題ID 7
-        "1742017001012": "0030302", // 問題ID 21
-        "1742017001013": "0030303", // 問題ID 22
-        "1742017001014": "0030304", // 問題ID 23
-        
-        // 手形取引
-        "1742017001009": "0030401", // 問題ID 18
-        "1742017001010": "0030402", // 問題ID 19
-        "1742017001011": "0030403", // 問題ID 20
-        
-        // 収益費用
-        "1742017001004": "0030501", // 問題ID 13
-        "1742017001015": "0030502", // 問題ID 24
-        "1742017001016": "0030503", // 問題ID 25
-        "1742017001018": "0030504", // 問題ID 27
-        
-        // 資産負債
-        "1742017001017": "0030601", // 問題ID 26
-        
-        // 決算整理
-        "1742017001019": "0030701", // 問題ID 28
-        "1742017001020": "0030702", // 問題ID 29
-        "1742017001021": "0030703", // 問題ID 30
-        "1742017001022": "0030704", // 問題ID 31
-        
-        // 資本取引
-        "1742017001023": "0030801", // 問題ID 32
-        "1742017001024": "0030802", // 問題ID 33
-        
-        // その他
-        "1742017001025": "0030001", // 問題ID 34
-        "1742017001026": "0030002", // 問題ID 35
-        "1742017001027": "0030003", // 問題ID 36
-        "1742017001029": "0030004"  // 問題ID 38
-      };
-      
-      // 進捗データを変換
-      for (const [oldId, data] of Object.entries(progressData)) {
-        // 新しいID形式がすでに存在するか、変換マップに存在するか確認
-        if (oldId.startsWith('003')) {
-          // すでに新しい形式の場合はそのまま
-          updatedProgressData[oldId] = data;
-        } else if (idMap[oldId]) {
-          // 古い形式から新しい形式に変換
-          updatedProgressData[idMap[oldId]] = data;
-        } else {
-          // マップになかった場合は元のIDをそのまま使用（念のため）
-          updatedProgressData[oldId] = data;
-        }
+      // サーバーからデータを取得
+      const response = await fetch('/api/progress');
+      if (!response.ok) {
+        throw new Error(`サーバーからの応答エラー: ${response.status}`);
       }
       
-      // 変換後のデータを保存（初回のみ）
-      if (Object.keys(progressData).some(id => !id.startsWith('003'))) {
-        localStorage.setItem('bookkeepingProgress', JSON.stringify(updatedProgressData));
-        console.log('進捗データを新しいID形式に変換しました');
-      }
-      
-      return updatedProgressData;
+      const progressData = await response.json();
+      console.log('Progress data from server:', progressData);
+      return progressData;
     } catch (error) {
       console.error('進捗データの読み込みに失敗しました:', error);
-      return {};
+      return {}; // エラー時は空のオブジェクトを返す
     }
   }
 
   // 正解した問題数を取得
-  getCompletedCount() {
-    const progress = this.getProgress();
-    return Object.values(progress).filter(p => p.countCorrectBySelect > 0).length;
+  async getCompletedCount() {
+    console.log('getCompletedCount called');
+    const progress = await this.getProgress();
+    
+    // 進捗データから一意のIDのみを抽出して重複カウントを防ぐ
+    // IDが003で始まる問題のみをカウント
+    const uniqueProblemIds = new Set();
+    
+    Object.entries(progress).forEach(([id, p]) => {
+      // 新しいID形式（003で始まる）の問題のみを対象に
+      if (id.startsWith('003')) {
+        // 完了条件：countCorrectBySelect > 0 または countCorrectByInput > 0 または isCorrect
+        if ((p.countCorrectBySelect > 0) || (p.countCorrectByInput > 0) || p.isCorrect) {
+          uniqueProblemIds.add(id);
+        }
+      }
+    });
+    
+    console.log('Completed problems count:', uniqueProblemIds.size);
+    console.log('Unique problem IDs:', Array.from(uniqueProblemIds));
+    
+    return Math.min(uniqueProblemIds.size, this.problems.length);
   }
 
   // 進捗率を計算
-  getProgressPercentage() {
-    if (this.problems.length === 0) return 0;
-    return Math.round(this.getCompletedCount() / this.problems.length * 100);
+  async getProgressPercentage() {
+    const completedCount = await this.getCompletedCount();
+    const totalCount = this.problems.length;
+    return Math.round((completedCount / totalCount) * 100);
   }
 
   // 問題を表示
@@ -1275,111 +1230,129 @@ class BookkeepingApp {
 
   // 次の未修了問題を表示
   showNextUnsolvedProblem() {
-    if (!this.currentProblemId) return;
-    
-    // 現在の問題を取得
-    const currentProblem = this.problems.find(p => p.id === this.currentProblemId);
-    if (!currentProblem) return;
-    
-    // 進捗データを取得
+    const currentProblemId = document.querySelector('.problem-container').dataset.id;
     const progress = this.getProgress();
     
-    // 同じカテゴリー内の問題をフィルタリング
-    const sameCategory = this.problems.filter(p => p.category === currentProblem.category);
+    // 現在の問題がどのカテゴリーに属しているか調べる
+    const problem = this.problems.find(p => p.id === currentProblemId);
+    if (!problem) return;
     
-    // 現在のカテゴリー内での問題のインデックスを取得
-    const currentCategoryIndex = sameCategory.findIndex(p => p.id === this.currentProblemId);
+    const category = problem.category;
     
-    // 現在の問題より後にある未修了問題を探す
+    // 同じカテゴリーの問題を取得
+    const sameCategory = this.problems.filter(p => p.category === category);
+    const currentIndex = sameCategory.findIndex(p => p.id === currentProblemId);
+    
+    // まず、同じカテゴリーの中で次の未解答問題を探す
     let nextUnsolvedProblem = null;
-    
-    // まず現在の問題より後ろを探す
-    for (let i = currentCategoryIndex + 1; i < sameCategory.length; i++) {
-      if (!progress[sameCategory[i].id]?.isCorrect) {
+    for (let i = currentIndex + 1; i < sameCategory.length; i++) {
+      // 未解答（countCorrectBySelect=0 かつ countCorrectByInput=0）なら選択
+      if (!(progress[sameCategory[i].id]?.countCorrectBySelect > 0) && 
+          !(progress[sameCategory[i].id]?.countCorrectByInput > 0)) {
         nextUnsolvedProblem = sameCategory[i];
         break;
       }
     }
     
-    // 見つからなければ最初から探す
+    // 見つからなかったら、同カテゴリーの最初から探す
     if (!nextUnsolvedProblem) {
-      for (let i = 0; i < sameCategory.length; i++) {
-        if (!progress[sameCategory[i].id]?.isCorrect && sameCategory[i].id !== this.currentProblemId) {
+      for (let i = 0; i < currentIndex; i++) {
+        if (!(progress[sameCategory[i].id]?.countCorrectBySelect > 0) && 
+            !(progress[sameCategory[i].id]?.countCorrectByInput > 0)) {
           nextUnsolvedProblem = sameCategory[i];
           break;
         }
       }
     }
     
-    // 同じカテゴリーに未修了問題がなければ全体から探す
+    // それでも見つからなかったら、次のカテゴリーの最初の問題を表示
     if (!nextUnsolvedProblem) {
-      const otherCategories = this.problems.filter(p => p.category !== currentProblem.category);
-      for (const problem of otherCategories) {
-        if (!progress[problem.id]?.isCorrect) {
-          nextUnsolvedProblem = problem;
-          break;
-        }
+      const nextProblem = this.getNextProblem(currentProblemId);
+      if (nextProblem) {
+        nextUnsolvedProblem = nextProblem;
       }
     }
     
-    // 未修了問題が見つかった場合は表示
     if (nextUnsolvedProblem) {
       this.displayProblem(nextUnsolvedProblem.id);
-      
-      // 問題リストをスクロールして現在の問題を表示
-      setTimeout(() => {
-        const currentItem = document.querySelector(`#bookkeeping-tab .problem-list-items li[data-id="${this.currentProblemId}"]`);
-        if (currentItem) {
-          currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
     } else {
-      // すべての問題が解決済みの場合はメッセージを表示
-      alert('すべての問題が解答済みです！おめでとうございます！');
+      alert('未修了の問題はありません。');
     }
   }
 
-  // 進捗を保存
-  saveProgress(problemId, isCorrect, answerMethod) {
-    const progress = this.getProgress();
+  // 進捗を保存（サーバーへ）
+  async saveProgress(problemId, isCorrect, answerMethod) {
+    console.log('saveProgress called:', { problemId, isCorrect, answerMethod });
     
-    // 問題IDを文字列として扱う
-    const id = problemId.toString();
-    
-    // 問題の記録を初期化または取得
-    if (!progress[id]) {
-      progress[id] = {
-        isCorrect: false,
-        countCorrectBySelect: 0,      // 選択肢で正解した回数
-        countCorrectByInput: 0,       // 入力のみで正解した回数
-        lastAttempt: null,
-        answerMethod: null
-      };
-    }
-    
-    // 最終挑戦日時を更新
-    progress[id].lastAttempt = new Date().toISOString();
-    
-    // 回答方法を記録
-    progress[id].answerMethod = answerMethod;
-    
-    // 正解の場合
-    if (isCorrect) {
-      // 正解フラグを設定
-      progress[id].isCorrect = true;
+    try {
+      // 現在の進捗データを取得
+      const progress = await this.getProgress();
+      console.log('Current progress:', progress);
       
-      // 入力のみの場合、入力正解回数をカウントアップ
-      if (answerMethod && answerMethod.isInputOnly) {
-        progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
-      } 
-      // 選択肢を使用した場合（片方でも選択肢を使っていれば）
-      else {
-        progress[id].countCorrectBySelect = (progress[id].countCorrectBySelect || 0) + 1;
+      // 問題IDを文字列として扱う
+      const id = problemId.toString();
+      
+      // 問題の記録を初期化または取得
+      if (!progress[id]) {
+        progress[id] = {
+          isCorrect: false,
+          countCorrectBySelect: 0,      // 選択肢で正解した回数
+          countCorrectByInput: 0,       // 入力のみで正解した回数
+          lastAttempt: null,
+          answerMethod: null
+        };
+      }
+      
+      // 最終挑戦日時を更新
+      progress[id].lastAttempt = new Date().toISOString();
+      
+      // 回答方法を記録
+      progress[id].answerMethod = answerMethod;
+      
+      // 正解の場合
+      if (isCorrect) {
+        // 正解フラグを設定
+        progress[id].isCorrect = true;
+        
+        // 入力のみの場合、入力正解回数をカウントアップ
+        if (answerMethod && answerMethod.isInputOnly) {
+          progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
+          console.log(`問題ID ${id}: countCorrectByInput を ${progress[id].countCorrectByInput}に増加`);
+        } 
+        // 選択肢を使用した場合（片方でも選択肢を使っていれば）
+        else {
+          progress[id].countCorrectBySelect = (progress[id].countCorrectBySelect || 0) + 1;
+          console.log(`問題ID ${id}: countCorrectBySelect を ${progress[id].countCorrectBySelect}に増加`);
+        }
+      }
+      
+      // サーバーに進捗データを保存
+      const response = await fetch('/api/progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(progress)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`サーバーからのエラー応答: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Progress saved to server:', result);
+      
+      console.log('Progress updated');
+    } catch (error) {
+      console.error('進捗データの保存に失敗しました:', error);
+      // エラー発生時にも現在のデータを表示（デバッグ用）
+      try {
+        const currentData = await this.getProgress();
+        console.log('最新の進捗データ:', currentData);
+      } catch (e) {
+        console.error('現在の進捗データの取得にも失敗:', e);
       }
     }
-    
-    localStorage.setItem('bookkeepingProgress', JSON.stringify(progress));
-    this.updateProblemList();
   }
 
   // 問題についての質問をメインフォームに送信
@@ -1446,4 +1419,4 @@ document.addEventListener('DOMContentLoaded', () => {
       // このイベントはindex.htmlの新しいイベントハンドラで処理するため、ここは空にする
     });
   }
-}); 
+});
