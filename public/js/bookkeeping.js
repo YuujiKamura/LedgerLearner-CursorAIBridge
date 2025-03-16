@@ -1350,8 +1350,8 @@ class BookkeepingApp {
     if (!progress[id]) {
       progress[id] = {
         isCorrect: false,
-        countCorrect: 0,         // 正解回数の合計
-        countCorrectByInput: 0,  // 入力のみでの正解回数の合計
+        countCorrectBySelect: 0,      // 選択肢で正解した回数
+        countCorrectByInput: 0,       // 入力のみで正解した回数
         lastAttempt: null,
         answerMethod: null
       };
@@ -1368,12 +1368,13 @@ class BookkeepingApp {
       // 正解フラグを設定
       progress[id].isCorrect = true;
       
-      // 正解回数をカウントアップ
-      progress[id].countCorrect = (progress[id].countCorrect || 0) + 1;
-      
-      // 入力のみの場合、入力正解回数もカウントアップ
+      // 入力のみの場合、入力正解回数をカウントアップ
       if (answerMethod && answerMethod.isInputOnly) {
         progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
+      } 
+      // 選択肢を使用した場合（片方でも選択肢を使っていれば）
+      else {
+        progress[id].countCorrectBySelect = (progress[id].countCorrectBySelect || 0) + 1;
       }
     }
     
