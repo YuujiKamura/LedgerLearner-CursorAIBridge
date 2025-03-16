@@ -1230,7 +1230,13 @@ class BookkeepingApp {
 
   // 次の未修了問題を表示
   showNextUnsolvedProblem() {
-    const currentProblemId = document.querySelector('.problem-container').dataset.id;
+    const problemContainer = document.querySelector('.problem-container');
+    if (!problemContainer) {
+      console.error("Element with class 'problem-container' not found.");
+      return; // 要素が見つからない場合は処理を終了
+    }
+    
+    const currentProblemId = problemContainer.dataset.id;
     const progress = this.getProgress();
     
     // 現在の問題がどのカテゴリーに属しているか調べる
