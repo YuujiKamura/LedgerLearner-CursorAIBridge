@@ -1,0 +1,14 @@
+{
+  "problemId": "test005",
+  "category": "データ構造",
+  "question": "これはデータ構造テストです",
+  "userAnswer": {
+    "method": "仕訳",
+    "debit": "現金",
+    "credit": "売上"
+  },
+  "additionalInfo": {
+    "timestamp": "2025-03-15T14:01:49.502Z",
+    "version": "1.0"
+  }
+}

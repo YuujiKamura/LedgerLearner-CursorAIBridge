@@ -1,0 +1,8 @@
+{
+  "type": "unhandled.rejection",
+  "message": "テストエラー: Promise拒否（手動テスト）",
+  "stack": "Error: テストエラー: Promise拒否（手動テスト）\n    at HTMLButtonElement.<anonymous> (http://localhost:3000/:609:32)",
+  "timestamp": "2025-03-15T13:15:29.217Z",
+  "url": "http://localhost:3000/",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+}

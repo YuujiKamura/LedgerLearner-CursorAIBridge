@@ -1,0 +1,10 @@
+{
+  "problemId": "test001",
+  "category": "テスト",
+  "question": "これはテスト問題です",
+  "userAnswer": {
+    "method": "仕訳",
+    "debit": "現金",
+    "credit": "売上"
+  }
+}

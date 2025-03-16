@@ -157,6 +157,25 @@ class BookkeepingApp {
     console.log('イベントリスナーを初期化');
     // 問題リストのクリックイベント
     document.querySelector('#bookkeeping-tab').addEventListener('click', (e) => {
+      // カテゴリー見出しクリックイベント
+      if (e.target.matches('.category-header') || e.target.closest('.category-header')) {
+        const header = e.target.matches('.category-header') ? e.target : e.target.closest('.category-header');
+        const categoryId = header.dataset.category;
+        const categoryContent = document.querySelector(`.category-content[data-category="${categoryId}"]`);
+        
+        if (categoryContent) {
+          // 折りたたみ状態をトグル
+          const isExpanded = categoryContent.style.display !== 'none';
+          categoryContent.style.display = isExpanded ? 'none' : 'block';
+          
+          // アイコンを回転
+          const arrow = header.querySelector('.category-arrow');
+          if (arrow) {
+            arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+          }
+        }
+      }
+      
       if (e.target.matches('.problem-item') || e.target.closest('.problem-item')) {
         const item = e.target.matches('.problem-item') ? e.target : e.target.closest('.problem-item');
         const problemId = item.dataset.id;
@@ -166,12 +185,22 @@ class BookkeepingApp {
       
       // 回答確認ボタンのクリックイベント
       if (e.target.matches('#check-answer-btn')) {
-        this.checkAnswer();
+        this.checkAnswerWithNewUI();
+      }
+      
+      // 前の問題ボタンのクリックイベント
+      if (e.target.matches('#prev-problem-btn')) {
+        this.showPreviousProblem();
       }
       
       // 次の問題ボタンのクリックイベント
       if (e.target.matches('#next-problem-btn')) {
         this.showNextProblem();
+      }
+      
+      // 次の未修了問題ボタンのクリックイベント
+      if (e.target.matches('#next-unsolved-btn')) {
+        this.showNextUnsolvedProblem();
       }
       
       // 質問するボタンのクリックイベント
@@ -268,28 +297,80 @@ class BookkeepingApp {
       // 進捗データを取得
       const progress = this.getProgress();
       
+      // カテゴリーごとに問題をグループ化
+      const categoryMap = {};
+      const categoryOrder = [
+        '現金・預金', '商品売買', '固定資産', '手形取引', 
+        '収益費用', '資産負債', '決算整理', '資本取引', 'その他'
+      ];
+      
+      // 数値の比較関数（IDを数値として比較）
+      const compareIds = (a, b) => {
+        return a.id.localeCompare(b.id);
+      };
+      
+      // 問題をカテゴリーごとに分類
+      this.problems.forEach(problem => {
+        const category = problem.category;
+        if (!categoryMap[category]) {
+          categoryMap[category] = [];
+        }
+        categoryMap[category].push(problem);
+      });
+      
+      // 各カテゴリー内で問題をID順にソート
+      Object.keys(categoryMap).forEach(category => {
+        categoryMap[category].sort(compareIds);
+      });
+      
       console.log('問題リストのHTMLを生成...');
+      let categoryHtml = '';
+      
+      // カテゴリー順に問題リストを生成
+      categoryOrder.forEach((category, index) => {
+        if (categoryMap[category] && categoryMap[category].length > 0) {
+          const categoryId = `category-${index}`;
+          const problems = categoryMap[category];
+          
+          // カテゴリーごとに正解数をカウント
+          const solvedCount = problems.filter(p => progress[p.id]?.isCorrect).length;
+          
+          categoryHtml += `
+            <div class="category-section">
+              <div class="category-header" data-category="${categoryId}">
+                <span class="category-arrow">▶</span>
+                <span class="category-name">${category}</span>
+                <span class="category-progress">(${solvedCount}/${problems.length})</span>
+              </div>
+              <ul class="category-content problem-list-items" data-category="${categoryId}" style="display: none;">
+                ${problems.map(problem => {
+                  // 問題に関する質問履歴があるかチェック
+                  const hasQuestionHistory = this.checkQuestionHistory(problem.id);
+                  
+                  return `
+                  <li class="problem-item ${progress[problem.id]?.isCorrect ? 'solved' : ''}" data-id="${problem.id}">
+                    ${problem.id.substring(problem.id.length - 4)} ${problem.category}
+                    <span class="icons">
+                      ${progress[problem.id]?.isCorrect ? '<span class="check-mark">✓</span>' : ''}
+                      ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
+                    </span>
+                  </li>
+                `}).join('')}
+              </ul>
+            </div>
+          `;
+        }
+      });
+      
       listContainer.innerHTML = `
         <h3>問題一覧</h3>
         <div class="progress-bar">
           <div class="progress" style="width: ${this.getProgressPercentage()}%"></div>
         </div>
         <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問正解</p>
-        <ul class="problem-list-items">
-          ${this.problems.map(problem => {
-            // 問題に関する質問履歴があるかチェック
-            const hasQuestionHistory = this.checkQuestionHistory(problem.id);
-            
-            return `
-            <li class="problem-item ${progress[problem.id]?.isCorrect ? 'solved' : ''}" data-id="${problem.id}">
-              ${problem.problemId || problem.id}. ${problem.category}
-              <span class="icons">
-                ${progress[problem.id]?.isCorrect ? '<span class="check-mark">✓</span>' : ''}
-                ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
-              </span>
-            </li>
-          `}).join('')}
-        </ul>
+        <div class="category-list">
+          ${categoryHtml}
+        </div>
       `;
       
       // CSS スタイルを追加
@@ -362,10 +443,83 @@ class BookkeepingApp {
     const styleElement = document.createElement('style');
     styleElement.id = 'bookkeeping-custom-styles';
     styleElement.textContent = `
+      /* カテゴリーセクションのスタイル */
+      .category-section {
+        margin-bottom: 10px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      
+      .category-header {
+        background-color: #f0f0f0;
+        padding: 8px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        color: #2c3e50;
+        transition: background-color 0.2s;
+      }
+      
+      .category-header:hover {
+        background-color: #e5e5e5;
+      }
+      
+      .category-arrow {
+        display: inline-block;
+        margin-right: 10px;
+        transition: transform 0.3s;
+        font-size: 12px;
+      }
+      
+      .category-name {
+        flex: 1;
+      }
+      
+      .category-progress {
+        font-size: 12px;
+        color: #7f8c8d;
+        font-weight: normal;
+      }
+      
+      .category-content {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+      
+      /* 既存の問題リストアイテムスタイル */
+      .problem-list-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      
       .problem-list-items li {
         position: relative;
+        padding: 8px 15px 8px 25px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
         padding-right: 50px; /* アイコン用のスペース */
       }
+      
+      .problem-list-items li:last-child {
+        border-bottom: none;
+      }
+      
+      .problem-list-items li:hover {
+        background-color: #f5f5f5;
+      }
+      
+      .problem-list-items li.solved {
+        background-color: #e8f5e9;
+      }
+      
+      .problem-list-items li.solved:hover {
+        background-color: #d5ecd7;
+      }
+      
       .problem-list-items .icons {
         position: absolute;
         right: 10px;
@@ -374,11 +528,13 @@ class BookkeepingApp {
         display: flex;
         align-items: center;
       }
+      
       .check-mark {
         color: #2ecc71;
         font-weight: bold;
         margin-right: 5px;
       }
+      
       .history-icon {
         display: inline-block;
         background-color: #f1c40f;
@@ -394,14 +550,17 @@ class BookkeepingApp {
         box-shadow: 0 2px 0 #e67e22;
         transition: all 0.2s;
       }
+      
       .history-icon:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 0 #e67e22;
       }
+      
       .history-icon:active {
         transform: translateY(0);
         box-shadow: 0 1px 0 #e67e22;
       }
+      
       /* 問題タイトル部分のアイコンスタイル */
       .title-icons {
         display: inline-flex;
@@ -409,15 +568,18 @@ class BookkeepingApp {
         margin-right: 10px;
         vertical-align: middle;
       }
+      
       .title-icons .check-mark {
         font-size: 22px;
         color: #2ecc71;
         margin-right: 5px;
       }
+      
       .title-icons .history-icon {
         margin-left: 3px;
         vertical-align: middle;
       }
+      
       /* マリオ風はてなボックス */
       .history-icon {
         position: relative;
@@ -427,6 +589,7 @@ class BookkeepingApp {
         text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
         box-shadow: 0 3px 0 #d35400, 2px 2px 5px rgba(0,0,0,0.2);
       }
+      
       .history-icon:before {
         content: '';
         position: absolute;
@@ -488,7 +651,88 @@ class BookkeepingApp {
   // 進捗データを取得
   getProgress() {
     try {
-      return JSON.parse(localStorage.getItem('bookkeepingProgress') || '{}');
+      const progressData = JSON.parse(localStorage.getItem('bookkeepingProgress') || '{}');
+      
+      // 新しい形式のIDに対応するための変換処理
+      const updatedProgressData = {};
+      
+      // 古いID形式（数字のみ）から新しいID形式（003XXYY）への変換マップ
+      const idMap = {
+        // 現金・預金
+        "1741925931164": "0030101", // 問題ID 2
+        "1742017001001": "0030102", // 問題ID 10
+        "1742017001002": "0030103", // 問題ID 11
+        "1742017001003": "0030104", // 問題ID 12
+        "1742017001028": "0030105", // 問題ID 37
+        
+        // 商品売買
+        "1741927802262": "0030201", // 問題ID 5
+        "1741931225689": "0030202", // 問題ID 9
+        "1742017001005": "0030203", // 問題ID 14
+        "1742017001006": "0030204", // 問題ID 15
+        "1742017001007": "0030205", // 問題ID 16
+        "1742017001008": "0030206", // 問題ID 17
+        "1742017001030": "0030207", // 問題ID 39
+        
+        // 固定資産
+        "1741930082234": "0030301", // 問題ID 7
+        "1742017001012": "0030302", // 問題ID 21
+        "1742017001013": "0030303", // 問題ID 22
+        "1742017001014": "0030304", // 問題ID 23
+        
+        // 手形取引
+        "1742017001009": "0030401", // 問題ID 18
+        "1742017001010": "0030402", // 問題ID 19
+        "1742017001011": "0030403", // 問題ID 20
+        
+        // 収益費用
+        "1742017001004": "0030501", // 問題ID 13
+        "1742017001015": "0030502", // 問題ID 24
+        "1742017001016": "0030503", // 問題ID 25
+        "1742017001018": "0030504", // 問題ID 27
+        
+        // 資産負債
+        "1742017001017": "0030601", // 問題ID 26
+        
+        // 決算整理
+        "1742017001019": "0030701", // 問題ID 28
+        "1742017001020": "0030702", // 問題ID 29
+        "1742017001021": "0030703", // 問題ID 30
+        "1742017001022": "0030704", // 問題ID 31
+        
+        // 資本取引
+        "1742017001023": "0030801", // 問題ID 32
+        "1742017001024": "0030802", // 問題ID 33
+        
+        // その他
+        "1742017001025": "0030001", // 問題ID 34
+        "1742017001026": "0030002", // 問題ID 35
+        "1742017001027": "0030003", // 問題ID 36
+        "1742017001029": "0030004"  // 問題ID 38
+      };
+      
+      // 進捗データを変換
+      for (const [oldId, data] of Object.entries(progressData)) {
+        // 新しいID形式がすでに存在するか、変換マップに存在するか確認
+        if (oldId.startsWith('003')) {
+          // すでに新しい形式の場合はそのまま
+          updatedProgressData[oldId] = data;
+        } else if (idMap[oldId]) {
+          // 古い形式から新しい形式に変換
+          updatedProgressData[idMap[oldId]] = data;
+        } else {
+          // マップになかった場合は元のIDをそのまま使用（念のため）
+          updatedProgressData[oldId] = data;
+        }
+      }
+      
+      // 変換後のデータを保存（初回のみ）
+      if (Object.keys(progressData).some(id => !id.startsWith('003'))) {
+        localStorage.setItem('bookkeepingProgress', JSON.stringify(updatedProgressData));
+        console.log('進捗データを新しいID形式に変換しました');
+      }
+      
+      return updatedProgressData;
     } catch (error) {
       console.error('進捗データの読み込みに失敗しました:', error);
       return {};
@@ -554,54 +798,274 @@ class BookkeepingApp {
       </span>
     ` : '';
     
-    viewContainer.innerHTML = `
-      <div class="problem-header">
-        <h3>${titleIcons.length > 0 ? titleIcons + ' ' : ''}問題 ${problem.problemId || problem.id}: ${problem.category}</h3>
-        <div class="problem-info">
-          <span class="problem-id">ID: ${problem.id}</span>
+    // 勘定科目カテゴリーの取得(非同期処理)
+    this.loadAccountCategories().then(categories => {
+      // 大分類のオプションリスト作成
+      const categoryOptions = categories.map(cat => 
+        `<option value="${cat.id}">${cat.name}</option>`
+      ).join('');
+      
+      viewContainer.innerHTML = `
+        <div class="problem-header">
+          <h3>${titleIcons.length > 0 ? titleIcons + ' ' : ''}問題 ${problem.problemNumber || problem.id}: ${problem.category}</h3>
+          <div class="problem-info">
+            <span class="problem-id">ID: ${problem.id}</span>
+          </div>
         </div>
-      </div>
-      <div class="problem-content">
-        <p class="problem-text">${problem.question}</p>
-      </div>
-      <div class="journal-entry">
-        <div class="entry-row">
-          <label>借方科目:</label>
-          <select id="debit-account">
-            <option value="">選択してください</option>
-            ${accountOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-          </select>
+        <div class="problem-content">
+          <p class="problem-text">${problem.question}</p>
         </div>
-        <div class="entry-row">
-          <label>貸方科目:</label>
-          <select id="credit-account">
-            <option value="">選択してください</option>
-            ${accountOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-          </select>
+        
+        <div class="journal-entry">
+          <div class="entry-row">
+            <label><strong>【借方】</strong></label>
+            <div class="flex-column-container">
+              <div class="input-row">
+                <input type="text" id="debit-account-input" placeholder="科目名を入力" class="form-control">
+              </div>
+              <div class="input-row selector-row">
+                <div class="or-label">または</div>
+                <div class="input-group">
+                  <select id="debit-category" class="form-control">
+                    <option value="">大分類を選択</option>
+                    ${categoryOptions}
+                  </select>
+                </div>
+                <div class="input-group">
+                  <select id="debit-subcategory" class="form-control" disabled>
+                    <option value="">小分類を選択してください</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="entry-row" style="margin-top: 15px;">
+            <label><strong>【貸方】</strong></label>
+            <div class="flex-column-container">
+              <div class="input-row">
+                <input type="text" id="credit-account-input" placeholder="科目名を入力" class="form-control">
+              </div>
+              <div class="input-row selector-row">
+                <div class="or-label">または</div>
+                <div class="input-group">
+                  <select id="credit-category" class="form-control">
+                    <option value="">大分類を選択</option>
+                    ${categoryOptions}
+                  </select>
+                </div>
+                <div class="input-group">
+                  <select id="credit-subcategory" class="form-control" disabled>
+                    <option value="">小分類を選択してください</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <button id="check-answer-btn" class="btn">回答を確認</button>
-      <div class="answer-result" style="display: none;"></div>
-    `;
-    
-    // 説明エリアをクリア
-    document.querySelector('#bookkeeping-tab .explanation').innerHTML = '';
-    document.querySelector('#bookkeeping-tab .explanation').style.display = 'none';
+        <button id="check-answer-btn" class="btn">解答する</button>
+        <div class="answer-result" style="display: none;"></div>
+      `;
+      
+      // 説明エリアをクリア
+      document.querySelector('#bookkeeping-tab .explanation').innerHTML = '';
+      document.querySelector('#bookkeeping-tab .explanation').style.display = 'none';
+      
+      // ナビゲーションコンテナを更新
+      const navContainer = document.querySelector('#bookkeeping-tab .navigation-container');
+      navContainer.innerHTML = `
+        <div class="problem-navigation">
+          <button id="prev-problem-btn" class="nav-btn">◀ 前の問題</button>
+          <button id="next-problem-btn" class="nav-btn">次の問題 ▶</button>
+          <button id="next-unsolved-btn" class="nav-btn">次の未修了問題 ▶▶</button>
+        </div>
+      `;
+      
+      // スタイルを追加
+      this.addCustomStylesForEntryForm();
+      this.addNavigationStyles();
+      
+      // イベントリスナー設定
+      this.setupSubcategorySelectors(categories);
+    });
   }
-
-  // 回答をチェック
-  checkAnswer() {
+  
+  // ナビゲーションボタン用のスタイル追加
+  addNavigationStyles() {
+    // スタイルが既に存在する場合は追加しない
+    if (document.getElementById('navigation-styles')) return;
+    
+    const styleElement = document.createElement('style');
+    styleElement.id = 'navigation-styles';
+    styleElement.textContent = `
+      .problem-navigation {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        width: 100%;
+      }
+      
+      .nav-btn {
+        padding: 12px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex: 1;
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+      }
+      
+      .nav-btn:hover {
+        background-color: #0069d9;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      #next-unsolved-btn {
+        background-color: #28a745;
+      }
+      
+      #next-unsolved-btn:hover {
+        background-color: #218838;
+      }
+      
+      .navigation-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    `;
+    document.head.appendChild(styleElement);
+  }
+  
+  // 勘定科目カテゴリを読み込む
+  async loadAccountCategories() {
+    try {
+      // キャッシュがあればそれを使用
+      if (this.accountCategories) {
+        return this.accountCategories;
+      }
+      
+      const response = await fetch('/data/account_categories.json');
+      if (!response.ok) {
+        throw new Error('勘定科目データの取得に失敗しました');
+      }
+      
+      const data = await response.json();
+      this.accountCategories = data.accountCategories || [];
+      return this.accountCategories;
+    } catch (error) {
+      console.error('勘定科目データの読み込みエラー:', error);
+      return [];
+    }
+  }
+  
+  // 小分類プルダウンのイベントリスナー設定
+  setupSubcategorySelectors(categories) {
+    // 借方の大分類が変更されたときのイベント
+    const debitCategory = document.getElementById('debit-category');
+    const debitSubcategory = document.getElementById('debit-subcategory');
+    
+    if (debitCategory && debitSubcategory) {
+      debitCategory.addEventListener('change', () => {
+        const categoryId = debitCategory.value;
+        if (!categoryId) {
+          debitSubcategory.innerHTML = '<option value="">小分類を選択してください</option>';
+          debitSubcategory.disabled = true;
+          return;
+        }
+        
+        // 選択された大分類に対応する小分類のオプションを生成
+        const category = categories.find(c => c.id === categoryId);
+        if (category && category.group) {
+          const options = category.group.map(item => 
+            `<option value="${item.name}">${item.name}</option>`
+          ).join('');
+          
+          debitSubcategory.innerHTML = `
+            <option value="">選択してください</option>
+            ${options}
+          `;
+          debitSubcategory.disabled = false;
+        }
+      });
+      
+      // 小分類が選択されたときに入力フォームに反映
+      debitSubcategory.addEventListener('change', () => {
+        if (debitSubcategory.value) {
+          document.getElementById('debit-account-input').value = debitSubcategory.value;
+        }
+      });
+    }
+    
+    // 貸方の大分類が変更されたときのイベント
+    const creditCategory = document.getElementById('credit-category');
+    const creditSubcategory = document.getElementById('credit-subcategory');
+    
+    if (creditCategory && creditSubcategory) {
+      creditCategory.addEventListener('change', () => {
+        const categoryId = creditCategory.value;
+        if (!categoryId) {
+          creditSubcategory.innerHTML = '<option value="">小分類を選択してください</option>';
+          creditSubcategory.disabled = true;
+          return;
+        }
+        
+        // 選択された大分類に対応する小分類のオプションを生成
+        const category = categories.find(c => c.id === categoryId);
+        if (category && category.group) {
+          const options = category.group.map(item => 
+            `<option value="${item.name}">${item.name}</option>`
+          ).join('');
+          
+          creditSubcategory.innerHTML = `
+            <option value="">選択してください</option>
+            ${options}
+          `;
+          creditSubcategory.disabled = false;
+        }
+      });
+      
+      // 小分類が選択されたときに入力フォームに反映
+      creditSubcategory.addEventListener('change', () => {
+        if (creditSubcategory.value) {
+          document.getElementById('credit-account-input').value = creditSubcategory.value;
+        }
+      });
+    }
+    
+    // 解答ボタンのイベントリスナー更新
+    const checkAnswerBtn = document.getElementById('check-answer-btn');
+    if (checkAnswerBtn) {
+      checkAnswerBtn.addEventListener('click', () => this.checkAnswerWithNewUI());
+    }
+  }
+  
+  // 新しいUIでの回答チェック
+  checkAnswerWithNewUI() {
     if (!this.currentProblemId) return;
     
     const problem = this.problems.find(p => p.id === this.currentProblemId);
     if (!problem) return;
     
-    const userDebit = document.getElementById('debit-account').value;
-    const userCredit = document.getElementById('credit-account').value;
+    // 直接入力フォームと小分類プルダウンの両方から値を取得
+    const userDebitInput = document.getElementById('debit-account-input').value;
+    const userDebitSubcategory = document.getElementById('debit-subcategory').value;
+    
+    const userCreditInput = document.getElementById('credit-account-input').value;
+    const userCreditSubcategory = document.getElementById('credit-subcategory').value;
+    
+    // 直接入力または小分類プルダウンの値を使用
+    const userDebit = userDebitInput || userDebitSubcategory;
+    const userCredit = userCreditInput || userCreditSubcategory;
     
     // 選択肢が選ばれているかチェック
     if (!userDebit || !userCredit) {
-      alert('借方科目と貸方科目を選択してください。');
+      alert('借方科目と貸方科目を選択または入力してください。');
       return;
     }
     
@@ -659,40 +1123,226 @@ class BookkeepingApp {
       // 進捗を保存
       this.saveProgress(problem.id, true);
       
-      // 次の問題ボタンを表示
-      resultContainer.innerHTML += `
-        <button id="next-problem-btn" class="btn">次の問題へ</button>
-      `;
+      // 問題リストを更新（進捗表示のため）
+      this.updateProblemList();
     } else {
       resultContainer.innerHTML = `
-        <div class="incorrect">✗ 不正解です。もう一度試してみてください。</div>
-        <button id="ask-question-btn" class="btn">質問する</button>
+        <div class="incorrect">✗ 不正解です。もう一度試してください。</div>
       `;
+      // 進捗を保存（不正解）
+      this.saveProgress(problem.id, false);
+    }
+  }
+  
+  // 勘定入力フォーム用のカスタムスタイル追加
+  addCustomStylesForEntryForm() {
+    // スタイルが既に存在する場合は追加しない
+    if (document.getElementById('entry-form-styles')) return;
+    
+    const styleElement = document.createElement('style');
+    styleElement.id = 'entry-form-styles';
+    styleElement.textContent = `
+      .flex-column-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 80%;
+      }
+      
+      .input-row {
+        width: 100%;
+      }
+      
+      .or-label {
+        width: 70px;
+        color: #6c757d;
+        font-size: 14px;
+        text-align: right;
+        padding-right: 10px;
+        display: flex;
+        align-items: center;
+      }
+      
+      .selector-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      
+      .input-group {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .form-control {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      
+      .entry-row {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: flex-start;
+      }
+      
+      .entry-row label {
+        display: inline-block;
+        margin-bottom: 0;
+        margin-right: 15px;
+        font-weight: bold;
+        width: 70px;
+        padding-top: 8px;
+      }
+      
+      #check-answer-btn {
+        margin-top: 15px;
+      }
+    `;
+    document.head.appendChild(styleElement);
+  }
+
+  // 前の問題を表示
+  showPreviousProblem() {
+    if (!this.currentProblemId) return;
+    
+    // 問題データをID順にソート
+    const sortedProblems = [...this.problems].sort((a, b) => a.id.localeCompare(b.id));
+    
+    // 現在の問題のインデックスを取得
+    const currentIndex = sortedProblems.findIndex(p => p.id === this.currentProblemId);
+    if (currentIndex === -1) return;
+    
+    let prevIndex;
+    if (currentIndex <= 0) {
+      // 最初の問題の場合は最後の問題に移動
+      prevIndex = sortedProblems.length - 1;
+    } else {
+      // 1つ前の問題に移動
+      prevIndex = currentIndex - 1;
     }
     
-    // 問題リストを更新（進捗表示のため）
-    this.updateProblemList();
+    this.displayProblem(sortedProblems[prevIndex].id);
+    
+    // 問題リストをスクロールして現在の問題を表示
+    setTimeout(() => {
+      const currentItem = document.querySelector(`#bookkeeping-tab .problem-list-items li[data-id="${this.currentProblemId}"]`);
+      if (currentItem) {
+        currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   }
 
   // 次の問題を表示
   showNextProblem() {
     if (!this.currentProblemId) return;
     
-    const currentIndex = this.problems.findIndex(p => p.id === this.currentProblemId);
+    // 問題データをID順にソート
+    const sortedProblems = [...this.problems].sort((a, b) => a.id.localeCompare(b.id));
+    
+    // 現在の問題のインデックスを取得
+    const currentIndex = sortedProblems.findIndex(p => p.id === this.currentProblemId);
     if (currentIndex === -1) return;
     
-    const nextIndex = (currentIndex + 1) % this.problems.length;
-    this.displayProblem(this.problems[nextIndex].id);
+    let nextIndex;
+    if (currentIndex >= sortedProblems.length - 1) {
+      // 最後の問題の場合は最初の問題に移動
+      nextIndex = 0;
+    } else {
+      // 1つ次の問題に移動
+      nextIndex = currentIndex + 1;
+    }
+    
+    this.displayProblem(sortedProblems[nextIndex].id);
+    
+    // 問題リストをスクロールして現在の問題を表示
+    setTimeout(() => {
+      const currentItem = document.querySelector(`#bookkeeping-tab .problem-list-items li[data-id="${this.currentProblemId}"]`);
+      if (currentItem) {
+        currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+
+  // 次の未修了問題を表示
+  showNextUnsolvedProblem() {
+    if (!this.currentProblemId) return;
+    
+    // 現在の問題を取得
+    const currentProblem = this.problems.find(p => p.id === this.currentProblemId);
+    if (!currentProblem) return;
+    
+    // 進捗データを取得
+    const progress = this.getProgress();
+    
+    // 同じカテゴリー内の問題をフィルタリング
+    const sameCategory = this.problems.filter(p => p.category === currentProblem.category);
+    
+    // 現在のカテゴリー内での問題のインデックスを取得
+    const currentCategoryIndex = sameCategory.findIndex(p => p.id === this.currentProblemId);
+    
+    // 現在の問題より後にある未修了問題を探す
+    let nextUnsolvedProblem = null;
+    
+    // まず現在の問題より後ろを探す
+    for (let i = currentCategoryIndex + 1; i < sameCategory.length; i++) {
+      if (!progress[sameCategory[i].id]?.isCorrect) {
+        nextUnsolvedProblem = sameCategory[i];
+        break;
+      }
+    }
+    
+    // 見つからなければ最初から探す
+    if (!nextUnsolvedProblem) {
+      for (let i = 0; i < sameCategory.length; i++) {
+        if (!progress[sameCategory[i].id]?.isCorrect && sameCategory[i].id !== this.currentProblemId) {
+          nextUnsolvedProblem = sameCategory[i];
+          break;
+        }
+      }
+    }
+    
+    // 同じカテゴリーに未修了問題がなければ全体から探す
+    if (!nextUnsolvedProblem) {
+      const otherCategories = this.problems.filter(p => p.category !== currentProblem.category);
+      for (const problem of otherCategories) {
+        if (!progress[problem.id]?.isCorrect) {
+          nextUnsolvedProblem = problem;
+          break;
+        }
+      }
+    }
+    
+    // 未修了問題が見つかった場合は表示
+    if (nextUnsolvedProblem) {
+      this.displayProblem(nextUnsolvedProblem.id);
+      
+      // 問題リストをスクロールして現在の問題を表示
+      setTimeout(() => {
+        const currentItem = document.querySelector(`#bookkeeping-tab .problem-list-items li[data-id="${this.currentProblemId}"]`);
+        if (currentItem) {
+          currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    } else {
+      // すべての問題が解決済みの場合はメッセージを表示
+      alert('すべての問題が解答済みです！おめでとうございます！');
+    }
   }
 
   // 進捗を保存
   saveProgress(problemId, isCorrect) {
     const progress = this.getProgress();
     
-    if (!progress[problemId] || !progress[problemId].isCorrect) {
-      progress[problemId] = {
+    // 問題IDを文字列として扱う
+    const id = problemId.toString();
+    
+    if (!progress[id] || !progress[id].isCorrect) {
+      progress[id] = {
         isCorrect: isCorrect,
-        attemptCount: (progress[problemId]?.attemptCount || 0) + 1,
+        attemptCount: (progress[id]?.attemptCount || 0) + 1,
         lastAttempt: new Date().toISOString()
       };
     }

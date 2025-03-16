@@ -1,0 +1,10 @@
+{
+    "problemId": "error001",
+    "category": "エラーテスト",
+    "question": "これは意図的に壊したJSONです
+    "userAnswer": {
+      "method": "仕訳",
+      "debit": "現金",
+      "credit": "売上"
+    }
+  }

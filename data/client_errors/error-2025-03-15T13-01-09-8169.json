@@ -1,0 +1,7 @@
+{
+  "type": "console.error",
+  "message": "JSON文字列のクリーニング後もパースに失敗: Expected ',' or '}' after property value in JSON at position 112 (line 1 column 113)",
+  "timestamp": "2025-03-15T13:00:43.508Z",
+  "url": "http://localhost:3000/",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+}

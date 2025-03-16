@@ -1,0 +1,11 @@
+{
+  "problemId": "journal001",
+  "category": "仕訳",
+  "question": "商品を10,000円で販売し、代金は現金で受け取った。",
+  "userAnswer": {
+    "method": "仕訳",
+    "debit": "現金",
+    "credit": "売上",
+    "amount": 10000
+  }
+}

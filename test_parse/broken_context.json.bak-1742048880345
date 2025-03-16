@@ -1,0 +1,47 @@
+[
+  {
+    "question": "モックじゃないのよNodeはフッフーン #context: {\"problemId\":\"test001\",\"category\":\"テスト\",\"question\":\"これはテスト問題です\",\"userAnswer\":{\"method\":\"仕訳\",\"debit\":\"現金\",\"credit\":\"売上\"}}",
+    "contextInstructions": null,
+    "timestamp": "2025-03-13T19:47:16.665Z",
+    "status": "answered",
+    "answer": "Node.jsはモック（模擬）ではなく実際のサーバーサイドJavaScript環境として機能します。",
+    "answeredAt": "2023-03-13T20:15:00.000Z",
+    "questionId": "1741895236663"
+  },
+  {
+    "question": "問題を解きます #context: {\"problemId\":\"test002\",\"category\":\"仕訳問題\",\"question\":\"商品を10,000円で販売し、代金は現金で受け取った。\",\"userAnswer\":{\"method\":\"仕訳\",\"debit\":\"現金\",\"credit\":\"売上\"}}",
+    "contextInstructions": null,
+    "timestamp": "2025-03-13T20:11:26.526Z",
+    "status": "answered",
+    "answer": "この取引では、現金が増加し、売上が計上されます。",
+    "answeredAt": "2023-03-13T20:16:30.000Z",
+    "questionId": "1741896686526"
+  },
+  {
+    "question": "問題を解きます #context: {\"problemId\":\"test003\",\"category\":\"仕訳問題\",\"question\":\"商品を8,000円で仕入れ、代金は掛けとした。\",\"userAnswer\":{\"method\":\"仕訳\",\"debit\":\"仕入\",\"credit\":\"買掛金}}",
+    "contextInstructions": null,
+    "timestamp": "2025-03-13T20:17:16.572Z",
+    "status": "answered",
+    "answer": "商品を掛けで仕入れる場合の仕訳は、（借方）仕入 8,000円 / （貸方）買掛金 8,000円となります。",
+    "answeredAt": "2025-03-13T20:17:53.856Z",
+    "questionId": "1741897036571"
+  },
+  {
+    "question": "問題を解きます #context: {\"problemId\":\"test004\",\"category\":\"複合仕訳\",\"question\":\"商品を10,000円で販売し、代金のうち3,000円は現金、残りは掛けとした。\",\"userAnswer\":{\"method\":\"複合仕訳\",\"entries\":[{\"debit\":\"現金\",\"amount\":3000},{\"debit\":\"売掛金\",\"amount\":7000},{\"credit\":\"売上\",\"amount\":10000}}",
+    "contextInstructions": null,
+    "timestamp": "2025-03-13T20:18:12.345Z",
+    "status": "answered",
+    "answer": "複合仕訳の場合、（借方）現金 3,000円、（借方）売掛金 7,000円 / （貸方）売上 10,000円となります。",
+    "answeredAt": "2025-03-13T20:18:45.678Z",
+    "questionId": "1741897112345"
+  },
+  {
+    "question": "問題を解きます #context: {\"problemId\":\"test005\",category:\"構文エラー\",\"question:\"これは壊れたJSONです\"}",
+    "contextInstructions": null,
+    "timestamp": "2025-03-13T20:19:12.345Z",
+    "status": "answered",
+    "answer": "構文エラーの例です。",
+    "answeredAt": "2025-03-13T20:19:45.678Z",
+    "questionId": "1741897152345"
+  }
+] 

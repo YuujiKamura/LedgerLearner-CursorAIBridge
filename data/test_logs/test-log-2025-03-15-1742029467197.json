@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-03-15T09:04:27.144Z",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+  "testResults": [
+    {
+      "name": "HTML構造テスト",
+      "result": true,
+      "details": "HTML構造は正常です",
+      "timestamp": "2025-03-15T09:04:27.145Z"
+    },
+    {
+      "name": "問題データの読み込み",
+      "result": true,
+      "details": "APIテスト: 成功 (API読み込み成功: 34件の問題データを取得), ローカルファイルテスト: 成功 (ローカルファイル読み込み成功: 34件の問題データを取得)",
+      "timestamp": "2025-03-15T09:04:27.184Z"
+    },
+    {
+      "name": "ローカルストレージの機能",
+      "result": true,
+      "details": "ローカルストレージへの書き込みと読み込みが正常に動作しています",
+      "timestamp": "2025-03-15T09:04:27.185Z"
+    },
+    {
+      "name": "現在のフェーズの進捗データ",
+      "result": true,
+      "details": "進捗データ形式は正常です。16件の問題進捗データが保存されています。",
+      "timestamp": "2025-03-15T09:04:27.185Z"
+    },
+    {
+      "name": "問題表示機能",
+      "result": true,
+      "details": "問題表示機能は正常です。カテゴリ: 決算整理の問題を正常に表示できます。",
+      "timestamp": "2025-03-15T09:04:27.186Z"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "appVersion": "1.0.0",
+  "testRunId": "m89zd7hv8fh5r"
+}

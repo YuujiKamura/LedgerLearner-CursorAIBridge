@@ -487,7 +487,7 @@ async function updateProblemData() {
     }
     
     // 既存の問題IDをセットに保存
-    const existingProblemIds = new Set(existingData.problems.map(p => p.problemId));
+    const existingProblemIds = new Set(existingData.problems.map(p => p.problemNumber));
     
     // チャット履歴から問題データを抽出
     const chatHistory = await loadChatHistory();
@@ -499,19 +499,19 @@ async function updateProblemData() {
                 item.contextInstructions.category))
       .map(item => ({
         id: item.id,
-        problemId: item.contextInstructions.problemId,
+        problemNumber: item.contextInstructions.problemId,
         category: item.contextInstructions.category,
         question: item.contextInstructions.question,
         correctAnswer: item.contextInstructions.correctAnswer || {}
       }))
       // 既存データに含まれないものだけを追加
-      .filter(problem => !existingProblemIds.has(problem.problemId));
+      .filter(problem => !existingProblemIds.has(problem.problemNumber));
     
     // 既存の問題と新しい問題を結合
     const allProblems = [...existingData.problems, ...newProblems];
     
     // 問題IDでソート
-    allProblems.sort((a, b) => (a.problemId || 0) - (b.problemId || 0));
+    allProblems.sort((a, b) => (a.problemNumber || 0) - (b.problemNumber || 0));
     
     // 既存データに変更がある場合のみファイルを更新
     if (newProblems.length > 0) {

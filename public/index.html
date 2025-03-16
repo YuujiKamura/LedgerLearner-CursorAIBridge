@@ -142,6 +142,7 @@
             padding: 10px 15px;
             background: none;
             border: none;
+            border-top: 2px solid #ddd; /* 非アクティブタブの上部にグレーのボーダー */
             cursor: pointer;
             font-size: 15px;
             transition: all 0.3s ease;
@@ -151,7 +152,8 @@
             background-color: #f8f9fa;
         }
         .tab-btn.active {
-            border-bottom: 2px solid #3498db;
+            border-top: 2px solid #3498db; /* 上部に青いボーダー */
+            border-bottom: none;
             font-weight: bold;
             color: #3498db;
         }
@@ -416,6 +418,57 @@
             background-color: #234e52;
             color: #81e6d9;
         }
+        
+        /* 簿記タブのスタイル */
+        .bookkeeping-container {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+        }
+        
+        .problem-list {
+            flex: 0 0 250px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: auto;
+            height: 100%;
+            max-height: 700px;
+        }
+        
+        .problem-detail-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .problem-view {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            overflow: auto;
+            flex: 1;
+        }
+        
+        .explanation {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            display: none;
+        }
+        
+        .navigation-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            min-height: 80px;
+        }
+        
+        body.dark-theme .navigation-container {
+            background-color: #2c3e50;
+            border-color: #4a5568;
+        }
     </style>
 </head>
 <body>
@@ -505,12 +558,17 @@
                         <!-- 問題リストが JavaScript によって表示されます -->
                         <p>問題を読み込み中...</p>
                     </div>
-                    <div class="problem-view">
-                        <!-- 問題の詳細が JavaScript によって表示されます -->
-                        <p>問題を選択してください。</p>
-                    </div>
-                    <div class="explanation">
-                        <!-- 解説が JavaScript によって表示されます -->
+                    <div class="problem-detail-container">
+                        <div class="problem-view">
+                            <!-- 問題の詳細が JavaScript によって表示されます -->
+                            <p>問題を選択してください。</p>
+                        </div>
+                        <div class="explanation">
+                            <!-- 解説が JavaScript によって表示されます -->
+                        </div>
+                        <div class="navigation-container">
+                            <!-- ナビゲーションボタンが JavaScript によって表示されます -->
+                        </div>
                     </div>
                 </div>
             </div>

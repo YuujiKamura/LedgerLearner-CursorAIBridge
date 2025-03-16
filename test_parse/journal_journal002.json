@@ -1,0 +1,22 @@
+{
+  "problemId": "journal002",
+  "category": "仕訳",
+  "question": "商品を10,000円で販売し、代金のうち3,000円は現金、残りは掛けとした。",
+  "userAnswer": {
+    "method": "複合仕訳",
+    "entries": [
+      {
+        "debit": "現金",
+        "amount": 3000
+      },
+      {
+        "debit": "売掛金",
+        "amount": 7000
+      },
+      {
+        "credit": "売上",
+        "amount": 10000
+      }
+    ]
+  }
+}

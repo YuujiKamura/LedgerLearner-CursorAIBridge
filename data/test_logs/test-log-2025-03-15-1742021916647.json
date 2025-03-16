@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-03-15T06:58:36.611Z",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+  "testResults": [
+    {
+      "name": "HTML構造テスト",
+      "result": false,
+      "details": ".problem-list 要素が見つかりません",
+      "timestamp": "2025-03-15T06:58:36.612Z"
+    },
+    {
+      "name": "問題データの読み込み",
+      "result": true,
+      "details": "APIテスト: 成功 (API読み込み成功: 34件の問題データを取得), ローカルファイルテスト: 成功 (ローカルファイル読み込み成功: 34件の問題データを取得)",
+      "timestamp": "2025-03-15T06:58:36.626Z"
+    },
+    {
+      "name": "ローカルストレージの機能",
+      "result": true,
+      "details": "ローカルストレージへの書き込みと読み込みが正常に動作しています",
+      "timestamp": "2025-03-15T06:58:36.626Z"
+    },
+    {
+      "name": "現在のフェーズの進捗データ",
+      "result": true,
+      "details": "進捗データ形式は正常です。12件の問題進捗データが保存されています。",
+      "timestamp": "2025-03-15T06:58:36.626Z"
+    },
+    {
+      "name": "問題表示機能",
+      "result": true,
+      "details": "問題表示機能は正常です。カテゴリ: 収益費用の問題を正常に表示できます。",
+      "timestamp": "2025-03-15T06:58:36.628Z"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 4,
+    "failed": 1
+  },
+  "appVersion": "1.0.0",
+  "testRunId": "m89uvdg49yroa"
+}
