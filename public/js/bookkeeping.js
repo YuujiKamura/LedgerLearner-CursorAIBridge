@@ -376,9 +376,8 @@ class BookkeepingApp {
           
           <div class="progress-info">
             <div class="progress-text" id="progress-text">
-              正解した問題数：
+              正答数：
             </div>
-            
             <div class="progress-details">
               <div class="progress-row">
                 <div class="progress-label">選択式: ${selectCompletedCount}/${totalProblems} (${selectPercentage}%)</div>
