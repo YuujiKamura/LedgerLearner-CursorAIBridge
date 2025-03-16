@@ -375,10 +375,7 @@ class BookkeepingApp {
         
         <div class="progress-info">
           <div class="progress-text" id="progress-text">
-            ${completedCount}/${totalProblems} 問解答済み (${percentage}%)
-          </div>
-          <div class="progress-bar-container">
-            <div class="progress-bar" id="progress-bar" style="width: ${percentage}%;"></div>
+            正解した問題数
           </div>
           
           <div class="progress-details">
