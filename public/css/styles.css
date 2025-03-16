@@ -204,6 +204,16 @@ body.dark-theme .input-progress .progress-bar {
     background-color: #f39c12;
 }
 
+body.dark-theme .problem-header-block {
+    background-color: #2c3e50;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+body.dark-theme .problem-list-block {
+    background-color: #2c3e50;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
 /* レスポンシブデザイン */
 @media (max-width: 768px) {
     .bookkeeping-container {
@@ -253,4 +263,20 @@ body.dark-theme .input-progress .progress-bar {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.problem-header-block {
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.problem-list-block {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-top: 15px;
 } 
