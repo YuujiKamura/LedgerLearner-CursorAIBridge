@@ -348,10 +348,10 @@ class BookkeepingApp {
                   const hasQuestionHistory = this.checkQuestionHistory(problem.id);
                   
                   return `
-                  <li class="problem-item ${progress[problem.id]?.isCorrect ? 'solved' : ''}" data-id="${problem.id}">
+                  <li class="problem-item ${progress[problem.id]?.countCorrectBySelect > 0 ? 'solved' : ''}" data-id="${problem.id}">
                     ${problem.id.substring(problem.id.length - 4)} ${problem.category}
                     <span class="icons">
-                      ${progress[problem.id]?.isCorrect ? '<span class="check-mark">✓</span>' : ''}
+                      ${progress[problem.id]?.countCorrectBySelect > 0 ? '<span class="check-mark">✓</span>' : ''}
                       ${hasQuestionHistory ? '<span class="history-icon" data-id="' + problem.id + '">❓</span>' : ''}
                     </span>
                   </li>
@@ -367,7 +367,7 @@ class BookkeepingApp {
         <div class="progress-bar">
           <div class="progress" style="width: ${this.getProgressPercentage()}%"></div>
         </div>
-        <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問正解</p>
+        <p>進捗: ${this.getCompletedCount()}/${this.problems.length} 問選択肢で正解</p>
         <div class="category-list">
           ${categoryHtml}
         </div>
@@ -742,7 +742,7 @@ class BookkeepingApp {
   // 正解した問題数を取得
   getCompletedCount() {
     const progress = this.getProgress();
-    return Object.values(progress).filter(p => p.isCorrect).length;
+    return Object.values(progress).filter(p => p.countCorrectBySelect > 0).length;
   }
 
   // 進捗率を計算
