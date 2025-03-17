@@ -6,6 +6,17 @@ const readline = require('readline');
 const { execSync } = require('child_process');
 require('dotenv').config();
 
+// 環境設定
+const DEBUG_MODE = process.env.DEBUG_MODE === 'true' || false;
+const PORT = process.env.PORT || 3000;
+
+// ファイルパス設定
+const dataDir = path.join(__dirname, 'public', 'data');
+const progressDataPath = path.join(dataDir, 'user_progress.json');
+const chatHistoryPath = path.join(__dirname, 'data', 'chat_history.json');
+const answerDataPath = path.join(__dirname, 'data', 'answer_data.json');
+const problemDataPath = path.join(__dirname, 'public', 'data', 'bookkeeping_problems.json');
+
 // メッセージの一元管理用定数
 const MESSAGES = {
   SERVER_STARTED: 'サーバーが起動しました: http://localhost:',
@@ -14,8 +25,80 @@ const MESSAGES = {
   REQUEST_AI_ANSWER: 'CursorプロンプトからAIに回答を依頼してください。'
 };
 
+// ターミナルコマンドを実行する際の特殊文字を除去するヘルパー関数
+function sanitizeCommand(command) {
+  // ブラケットペーストモードの制御文字を除去 ([200~ と ~ で囲まれたテキスト)
+  let sanitized = command.replace(/\[200~/, '').replace(/~$/, '');
+  
+  // その他の一般的な特殊文字やエスケープシーケンスを除去
+  sanitized = sanitized.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+  
+  // コマンドが空になってしまった場合は元のコマンドを返す
+  return sanitized.trim() || command;
+}
+
+// 安全にコマンドを実行するヘルパー関数
+function safeExecCommand(command, options = {}) {
+  try {
+    // コマンドをサニタイズ
+    const sanitizedCommand = sanitizeCommand(command);
+    
+    // コマンドが変更された場合はログ出力
+    if (sanitizedCommand !== command) {
+      console.log(`コマンドを修正しました: '${command}' → '${sanitizedCommand}'`);
+    }
+    
+    // サニタイズされたコマンドを実行
+    return execSync(sanitizedCommand, { ...options, encoding: 'utf8' });
+  } catch (error) {
+    console.error(`コマンド実行中にエラーが発生しました: ${error.message}`);
+    throw error;
+  }
+}
+
+// Windows環境での文字化け対応ヘルパー関数
+function handleWinEncoding(text) {
+  // Windows環境か確認
+  if (process.platform === 'win32') {
+    try {
+      // 一般的な文字化けパターンを検出して修正
+      // 「エラー: プロセス "XXXX" が見つかりませんでした。」の文字化けに対応
+      if (text.includes('G[') && text.includes('vZX')) {
+        return 'エラー: プロセスが見つかりませんでした。';
+      }
+      
+      // その他の文字化けに対するパターン
+      // 典型的な日本語文字化けのマッピング
+      const charMap = {
+        'G[': 'エラー',
+        'vZX': 'プロセス',
+        '܂': '見つかりません',
+        'ł': 'でした'
+      };
+      
+      // マッピングに基づいて文字列を置換
+      let result = text;
+      Object.entries(charMap).forEach(([pattern, replacement]) => {
+        result = result.replace(new RegExp(pattern.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), replacement);
+      });
+      
+      return result;
+    } catch (e) {
+      console.error('文字コード変換中にエラーが発生しました:', e);
+      return text; // エラーが発生した場合は元のテキストを返す
+    }
+  }
+  
+  // Windows以外の環境では変更なし
+  return text;
+}
+
+// エラーメッセージの表示を改善するラッパー関数
+function logError(message) {
+  console.error(handleWinEncoding(message));
+}
+
 const app = express();
-const PORT = process.env.PORT || 3000;
 // 起動モードの指定 (auto, prompt, port)
 // auto: 自動的に既存のサーバーを終了する
 // prompt: ユーザーに確認する
@@ -152,145 +235,104 @@ app.get('/api/problems', async (req, res) => {
   }
 });
 
-// 進捗データを取得するAPIエンドポイント
-app.get('/api/progress', async (req, res) => {
+// 進捗データを読み込む関数
+function loadProgressData() {
   try {
-    // 進捗データファイルのパス
-    const progressFilePath = path.join(__dirname, 'public', 'data', 'user_progress.json');
-    console.log(`[API] 進捗データファイルパス: ${progressFilePath}`);
-    
-    // ファイルが存在するか確認
-    try {
-      await fs.access(progressFilePath);
-    } catch (err) {
-      // ファイルが存在しない場合は空のオブジェクトを返す
-      console.log('[API] 進捗データファイルが存在しないため、新規作成します');
-      await fs.writeFile(progressFilePath, JSON.stringify({}), 'utf8');
-      return res.json({});
+    if (!fs.existsSync(progressDataPath)) {
+      // DEBUGモードのみ詳細ログを表示
+      if (DEBUG_MODE) {
+        console.log('進捗データファイルが存在しません。新規作成します:', progressDataPath);
+      }
+      saveProgressData({});
+      return {};
     }
     
-    // ファイルが存在する場合はデータを読み込み
-    const progressData = await fs.readFile(progressFilePath, 'utf8');
-    console.log(`[API] 読み込んだ進捗データサイズ: ${progressData.length}バイト`);
-    
-    const parsedData = JSON.parse(progressData);
-    console.log(`[API] 進捗データのエントリ数: ${Object.keys(parsedData).length}件`);
-    
-    res.json(parsedData);
+    const data = fs.readFileSync(progressDataPath, 'utf8');
+    // DEBUGモードのみ詳細ログを表示
+    if (DEBUG_MODE) {
+      console.log('進捗データを読み込みました:', progressDataPath);
+      console.log('ファイルサイズ:', Buffer.from(data).length, 'バイト');
+    }
+    return JSON.parse(data);
   } catch (error) {
-    console.error('[API] 進捗データの取得中にエラーが発生しました:', error);
-    res.status(500).json({ error: '進捗データの取得に失敗しました' });
+    console.error('進捗データの読み込み中にエラーが発生しました:', error);
+    return {};
   }
+}
+
+// 進捗データを保存する関数
+function saveProgressData(data) {
+  try {
+    fs.writeFileSync(progressDataPath, JSON.stringify(data, null, 2), 'utf8');
+    // DEBUGモードのみ詳細ログを表示
+    if (DEBUG_MODE) {
+      console.log('進捗データを保存しました:', progressDataPath);
+    }
+    return true;
+  } catch (error) {
+    console.error('進捗データの保存中にエラーが発生しました:', error);
+    return false;
+  }
+}
+
+// 進捗データAPIエンドポイント
+app.get('/api/progress', (req, res) => {
+  const progressData = loadProgressData();
+  
+  // DEBUGモードのみ詳細ログを表示
+  if (DEBUG_MODE) {
+    console.log('進捗データを返します');
+  }
+  
+  res.json(progressData);
 });
 
-// 進捗データを保存するAPIエンドポイント
-app.post('/api/progress', async (req, res) => {
+app.post('/api/progress', express.json(), (req, res) => {
   try {
-    // テスト実行時に安全チェックを行う
-    ensureTestSafetyCheck();
+    const progressData = loadProgressData();
+    const updatedData = { ...progressData, ...req.body };
     
-    const progressData = req.body;
-    console.log('[API] 進捗データ保存リクエストを受信しました');
+    saveProgressData(updatedData);
     
-    // データディレクトリの存在確認
-    const dataDir = path.join(__dirname, 'public', 'data');
-    await ensureDirectoryExists(dataDir);
+    // DEBUGモードのみ詳細ログを表示
+    if (DEBUG_MODE) {
+      console.log('進捗データが更新されました:', JSON.stringify(req.body, null, 2));
+    } else {
+      console.log('進捗データが更新されました');
+    }
     
-    // 進捗データファイルのパス
-    const progressFilePath = path.join(dataDir, 'user_progress.json');
-    
-    // データを保存
-    await fs.writeFile(progressFilePath, JSON.stringify(progressData, null, 2), 'utf8');
-    console.log(`[API] 進捗データを保存しました: ${Object.keys(progressData).length}件`);
-    
-    res.json({ success: true, message: '進捗データを保存しました' });
+    res.json({ success: true });
   } catch (error) {
-    console.error('[API] 進捗データの保存中にエラーが発生しました:', error);
-    res.status(500).json({ error: '進捗データの保存に失敗しました' });
+    console.error('進捗データの更新中にエラーが発生しました:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // サーバー再起動APIエンドポイント
 app.post('/api/restart-server', async (req, res) => {
   try {
-    console.log('[API] サーバー再起動リクエストを受信しました');
+    console.log('サーバー再起動リクエストを受信しました');
     
-    // 応答を先に返す
-    res.json({ success: true, message: 'サーバーを再起動します' });
+    // サーバープロセスを終了
+    await killExistingServer(PORT);
     
-    // プロセスを終了する前に少し待機（クライアントにレスポンスを返すため）
-    setTimeout(async () => {
-      console.log('[API] サーバーを再起動します...');
-      
-      // 現在のPIDを記録（自分自身を後で再起動するため）
-      const currentPid = process.pid;
-      console.log(`[API] 現在のプロセスID: ${currentPid}`);
-      
-      try {
-        // Windowsであるかどうかを確認
-        const isWindows = process.platform === 'win32';
-        
-        if (isWindows) {
-          // Windowsの場合はバッチファイルを使用
-          console.log('[API] Windows環境を検出しました。バッチファイルを使用します。');
-          
-          const { exec } = require('child_process');
-          const path = require('path');
-          
-          // バッチファイルの絶対パス
-          const batchPath = path.resolve(__dirname, 'restart_server.bat');
-          console.log(`[API] バッチファイルパス: ${batchPath}`);
-          
-          // 直接cmd.exeを使ってバッチファイルを実行（Git Bashでの問題を回避）
-          const command = `cmd.exe /c start "" "${batchPath}"`;
-          console.log(`[API] 実行コマンド: ${command}`);
-          
-          // 子プロセスを分離して実行
-          const child = exec(command, {
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: false
-          });
-          
-          // 親プロセスから切り離す
-          if (child.unref) {
-            child.unref();
-          }
-          
-          console.log('[API] 再起動バッチファイルを実行しました');
-        } else {
-          // Linux/Macの場合は直接npm startを実行
-          console.log('[API] UNIX環境を検出しました。');
-          
-          const { spawn } = require('child_process');
-          
-          // バックグラウンドで実行（nohupsを使用）
-          const child = spawn('nohup', ['npm', 'start'], {
-            detached: true,
-            stdio: 'ignore',
-            cwd: __dirname
-          });
-          
-          // 親プロセスから切り離す
-          child.unref();
-          
-          console.log('[API] 新しいプロセスをバックグラウンドで開始しました');
-        }
-        
-        // タイマーを設定して現在のプロセスを終了
-        console.log('[API] 現在のプロセスは5秒後に終了します...');
-        setTimeout(() => {
-          console.log('[API] プロセスを終了します。PID:', process.pid);
-          process.exit(0);
-        }, 5000);
-      } catch (error) {
-        console.error('[API] サーバー再起動プロセス中にエラーが発生しました:', error);
-        process.exit(1);  // エラーコードで終了
-      }
-    }, 2000);
+    // サーバー再起動用のコマンドを定義（ユーザーの環境に基づく）
+    let restartCommand;
+    if (process.platform === 'win32') {
+      // Windows環境では、新しいコマンドプロンプトウィンドウでサーバーを起動
+      restartCommand = `start cmd /c "cd ${__dirname} && node server.js"`;
+    } else {
+      // Unix系環境では、バックグラウンドでサーバーを起動
+      restartCommand = `cd ${__dirname} && node server.js &`;
+    }
+    
+    // 安全なコマンド実行関数を使用してサーバーを再起動
+    safeExecCommand(restartCommand);
+    
+    res.json({ success: true, message: 'サーバーを再起動しています' });
   } catch (error) {
-    console.error('[API] サーバー再起動中にエラーが発生しました:', error);
-    res.status(500).json({ error: 'サーバー再起動に失敗しました' });
+    console.error('サーバー再起動中にエラーが発生しました:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -596,29 +638,43 @@ async function killExistingServer(port) {
     if (process.platform === 'win32') {
       // Windows - より単純で堅牢なバージョンに修正
       try {
-        // 英数字のみのコマンドに修正し、バッチファイル記法ではなくJSの記法を使用
         const cmd = `netstat -ano | findstr :${port} | findstr LISTENING`;
-        const output = execSync(cmd, { encoding: 'utf8' }).toString();
+        const output = safeExecCommand(cmd).toString();
         
         // 出力行を処理
         const lines = output.split('\n').filter(line => line.trim());
         if (lines.length > 0) {
           let killSuccess = false;
+          // 既に終了したプロセスIDを記録するセット
+          const terminatedPids = new Set();
           
           for (const line of lines) {
             // 最後のカラムがPIDです
             const parts = line.trim().split(/\s+/);
             const pid = parts[parts.length - 1];
             
-            if (pid && !isNaN(parseInt(pid, 10))) {
+            if (pid && !isNaN(parseInt(pid, 10)) && !terminatedPids.has(pid)) {
               try {
                 console.log(`プロセスID ${pid} を終了します...`);
-                // コマンドを分割して実行（スペースを含む問題を回避）
-                execSync(`taskkill /F /PID ${pid}`, { encoding: 'utf8' });
+                // 安全なコマンド実行関数を使用
+                safeExecCommand(`taskkill /F /PID ${pid}`);
                 killSuccess = true;
                 console.log(`プロセスID ${pid} を終了しました`);
+                // 終了したプロセスIDを記録
+                terminatedPids.add(pid);
               } catch (killError) {
-                console.error(`プロセスID ${pid} の終了に失敗: ${killError.message}`);
+                const errorMessage = handleWinEncoding(killError.message);
+                
+                if (errorMessage.includes('プロセスが見つかりません') || 
+                    errorMessage.includes('見つかりません') || 
+                    errorMessage.includes('存在しません')) {
+                  // プロセスが既に終了している場合は正常として扱う
+                  console.log(`プロセスID ${pid} は既に終了しています`);
+                  terminatedPids.add(pid);
+                  killSuccess = true;
+                } else {
+                  logError(`プロセスID ${pid} の終了に失敗: ${errorMessage}`);
+                }
               }
             }
           }
@@ -645,32 +701,58 @@ async function killExistingServer(port) {
           return true;
         }
         
-        console.error('プロセス検出中にエラーが発生しました:', innerError.message);
+        logError('プロセス検出中にエラーが発生しました: ' + innerError.message);
         return false;
       }
     } else {
-      // Linux/Mac
+      // Unix系OSの場合
       try {
-        // lsofコマンドでポートを使用しているプロセスを終了（-rオプション追加で空の場合エラーにならない）
-        execSync(`lsof -i :${port} -t | xargs -r kill -9`, { encoding: 'utf8' });
-        console.log('既存のサーバーを終了しました');
-        // プロセス終了後に5秒待機してポートが確実に解放されるのを待つ
-        console.log('ポートが解放されるまで5秒待機します...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        return true;
-      } catch (innerError) {
-        if (innerError.status === 1 && !innerError.stdout) {
+        const cmd = `lsof -i:${port} -t`;
+        // 安全なコマンド実行関数を使用
+        const pids = safeExecCommand(cmd).toString().trim().split('\n');
+        let killSuccess = false;
+        // 既に終了したプロセスIDを記録するセット
+        const terminatedPids = new Set();
+        
+        for (const pid of pids) {
+          if (pid && !isNaN(parseInt(pid, 10)) && !terminatedPids.has(pid)) {
+            try {
+              console.log(`プロセスID ${pid} を終了します...`);
+              // 安全なコマンド実行関数を使用
+              safeExecCommand(`kill -9 ${pid}`);
+              killSuccess = true;
+              console.log(`プロセスID ${pid} を終了しました`);
+              // 終了したプロセスIDを記録
+              terminatedPids.add(pid);
+            } catch (killError) {
+              console.error(`プロセスID ${pid} の終了に失敗しました:`, killError.message);
+            }
+          }
+        }
+        
+        if (killSuccess) {
+          console.log('既存のサーバーを終了しました');
+          // プロセス終了後に5秒待機してポートが確実に解放されるのを待つ
+          console.log('ポートが解放されるまで5秒待機します...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          return true;
+        } else {
+          console.log('プロセスの終了に失敗しました');
+          return false;
+        }
+      } catch (osError) {
+        if (osError.status === 1 && !osError.stdout) {
           // 出力がない場合は、プロセスが見つからなかったと判断
           console.log('ポートを使用しているプロセスは見つかりませんでした');
           return true;
         }
         
-        console.error('プロセス終了中にエラーが発生しました:', innerError.message);
+        console.error('プロセス終了中にエラーが発生しました:', osError.message);
         return false;
       }
     }
   } catch (error) {
-    console.error('既存のサーバーの終了に失敗しました:', error.message);
+    logError('既存のサーバーの終了に失敗しました: ' + error.message);
     return false;
   }
 }
