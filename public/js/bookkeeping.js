@@ -223,6 +223,19 @@ class BookkeepingApp {
         // このイベントはindex.htmlの新しいイベントハンドラで処理するため、ここは空にする
       });
     }
+
+    // 送信ボタンのイベントリスナー
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        // 現在表示中の問題IDを取得
+        const currentProblemId = this.currentProblemId;
+        if (currentProblemId) {
+          // 問題コンテキストを質問に追加
+          this.addProblemContextToQuestion(currentProblemId);
+        }
+      });
+    }
   }
 
   // 履歴タブの該当質問箇所に移動
@@ -887,26 +900,45 @@ class BookkeepingApp {
                 </div>
               </div>
             </div>
+            
+            <div class="action-buttons" style="display: flex; justify-content: center; gap: 10px; margin: 15px 0; padding: 12px; background-color: #f0f0f0; border-radius: 6px;">
+              <button id="check-answer-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">解答する</button>
+              <button id="ask-question-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
+            </div>
+            
+            <div class="answer-result" style="display: none;"></div>
           </div>
-          <button id="check-answer-btn" class="btn">解答する</button>
-          <div class="answer-result" style="display: none;"></div>
         </div>
       `;
       
       // 説明エリアをクリア
-      document.querySelector('#bookkeeping-tab .explanation').innerHTML = '';
-      document.querySelector('#bookkeeping-tab .explanation').style.display = 'none';
+      const explanationContainer = document.querySelector('#bookkeeping-tab .explanation');
+      if (explanationContainer) {
+        explanationContainer.innerHTML = '';
+        explanationContainer.style.display = 'none';
+      }
       
       // ナビゲーションコンテナを更新
       const navContainer = document.querySelector('#bookkeeping-tab .navigation-container');
-      navContainer.innerHTML = `
-        <div class="problem-navigation">
-          <button id="prev-problem-btn" class="nav-btn">◀ 前の問題</button>
-          <button id="next-problem-btn" class="nav-btn">次の問題 ▶</button>
-          <button id="next-unsolved-btn" class="nav-btn">次の未修了問題 ▶▶</button>
-        </div>
-      `;
-      
+      if (navContainer) {
+        navContainer.innerHTML = `
+          <div class="problem-navigation">
+            <button id="prev-problem-btn" class="nav-btn">◀ 前の問題</button>
+            <button id="next-problem-btn" class="nav-btn">次の問題 ▶</button>
+            <button id="next-unsolved-btn" class="nav-btn">次の未修了問題 ▶▶</button>
+          </div>
+        `;
+        
+        // ナビゲーションボタンのイベントリスナー
+        const prevBtn = document.getElementById('prev-problem-btn');
+        const nextBtn = document.getElementById('next-problem-btn');
+        const nextUnsolvedBtn = document.getElementById('next-unsolved-btn');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => this.showPreviousProblem());
+        if (nextBtn) nextBtn.addEventListener('click', () => this.showNextProblem());
+        if (nextUnsolvedBtn) nextUnsolvedBtn.addEventListener('click', () => this.showNextUnsolvedProblem());
+      }
+
       // スタイルを追加
       this.addCustomStylesForEntryForm();
       this.addNavigationStyles();
@@ -1060,6 +1092,16 @@ class BookkeepingApp {
     if (checkAnswerBtn) {
       checkAnswerBtn.addEventListener('click', () => this.checkAnswerWithNewUI());
     }
+    
+    // 質問ボタンのイベントリスナー追加
+    const askQuestionBtn = document.getElementById('ask-question-btn');
+    if (askQuestionBtn) {
+      askQuestionBtn.addEventListener('click', () => {
+        this.askQuestionAboutProblem();
+        // 質問フォームまでスクロール
+        document.querySelector('.question-input-container').scrollIntoView({ behavior: 'smooth' });
+      });
+    }
   }
   
   // 新しいUIでの回答チェック
@@ -1131,7 +1173,18 @@ class BookkeepingApp {
         explanationContainer.innerHTML = `
           <h4>解説</h4>
           <p>${problem.explanation}</p>
+          <button id="ask-about-explanation-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
         `;
+        
+        // 解説についての質問ボタンのイベントリスナー
+        const askAboutExplanationBtn = document.getElementById('ask-about-explanation-btn');
+        if (askAboutExplanationBtn) {
+          askAboutExplanationBtn.addEventListener('click', () => {
+            this.askQuestionAboutProblem();
+            // 質問フォームまでスクロール
+            document.querySelector('.question-input-container').scrollIntoView({ behavior: 'smooth' });
+          });
+        }
       } else {
         // 一致した回答パターンを表示
         const correctDebit = matchedAnswer ? matchedAnswer.debit : problem.correctAnswer.debit;
@@ -1141,7 +1194,18 @@ class BookkeepingApp {
         explanationContainer.innerHTML = `
           <h4>正解${methodText}</h4>
           <p>借方：${correctDebit}<br>貸方：${correctCredit}</p>
+          <button id="ask-about-explanation-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
         `;
+        
+        // 解説についての質問ボタンのイベントリスナー
+        const askAboutExplanationBtn = document.getElementById('ask-about-explanation-btn');
+        if (askAboutExplanationBtn) {
+          askAboutExplanationBtn.addEventListener('click', () => {
+            this.askQuestionAboutProblem();
+            // 質問フォームまでスクロール
+            document.querySelector('.question-input-container').scrollIntoView({ behavior: 'smooth' });
+          });
+        }
       }
       
       // 進捗を保存（入力方法の情報を追加）
@@ -1423,7 +1487,31 @@ class BookkeepingApp {
     }
   }
 
-  // 問題についての質問をメインフォームに送信
+  // 問題コンテキストを質問に追加するメソッド
+  addProblemContextToQuestion(problemId) {
+    const questionInput = document.getElementById('question');
+    const contextInput = document.getElementById('question-context');
+    
+    if (!questionInput || !contextInput || !problemId) return;
+    
+    // 問題データを取得
+    const problemData = this.problems.find(p => p.id === problemId);
+    if (!problemData) return;
+    
+    // コンテキスト情報を作成
+    const contextData = {
+      problemId: problemId,
+      category: problemData.category || '簿記3級',
+      problemText: problemData.question || ''
+    };
+    
+    // コンテキスト情報をJSON形式で隠しフィールドに設定
+    contextInput.value = JSON.stringify(contextData);
+    
+    console.log('問題コンテキストを追加しました:', problemId);
+  }
+
+  // 問題について質問するメソッド
   askQuestionAboutProblem() {
     if (!this.currentProblemId) return;
     
