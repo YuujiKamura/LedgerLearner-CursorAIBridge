@@ -372,8 +372,6 @@ class BookkeepingApp {
       // リストを更新
       listContainer.innerHTML = `
         <div class="problem-header-block">
-          <h3>問題一覧</h3>
-          
           <div class="progress-info">
             <div class="progress-details">
               <div class="progress-row">
@@ -837,18 +835,18 @@ class BookkeepingApp {
               <label><strong>【借方】</strong></label>
               <div class="flex-column-container">
                 <div class="input-row">
-                  <input type="text" id="debit-account-input" placeholder="科目名を入力" class="form-control">
+                  <input type="text" id="debit-account-input" placeholder="科目名を入力" class="form-control" autocomplete="off">
                 </div>
                 <div class="input-row selector-row">
                   <div class="or-label">または</div>
                   <div class="input-group">
-                    <select id="debit-category" class="form-control">
+                    <select id="debit-category" class="form-control" autocomplete="off">
                       <option value="">大分類を選択</option>
                       ${categoryOptions}
                     </select>
                   </div>
                   <div class="input-group">
-                    <select id="debit-subcategory" class="form-control" disabled>
+                    <select id="debit-subcategory" class="form-control" disabled autocomplete="off">
                       <option value="">小分類を選択してください</option>
                     </select>
                   </div>
@@ -860,18 +858,18 @@ class BookkeepingApp {
               <label><strong>【貸方】</strong></label>
               <div class="flex-column-container">
                 <div class="input-row">
-                  <input type="text" id="credit-account-input" placeholder="科目名を入力" class="form-control">
+                  <input type="text" id="credit-account-input" placeholder="科目名を入力" class="form-control" autocomplete="off">
                 </div>
                 <div class="input-row selector-row">
                   <div class="or-label">または</div>
                   <div class="input-group">
-                    <select id="credit-category" class="form-control">
+                    <select id="credit-category" class="form-control" autocomplete="off">
                       <option value="">大分類を選択</option>
                       ${categoryOptions}
                     </select>
                   </div>
                   <div class="input-group">
-                    <select id="credit-subcategory" class="form-control" disabled>
+                    <select id="credit-subcategory" class="form-control" disabled autocomplete="off">
                       <option value="">小分類を選択してください</option>
                     </select>
                   </div>
