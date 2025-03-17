@@ -300,9 +300,20 @@ class BookkeepingApp {
         // カテゴリーごとに問題アイテムのHTMLを生成
         const problemItems = problems.map(problem => {
           const problemProgress = progress[problem.id] || {};
-          const isSolved = problemProgress.isCorrect || 
-                          problemProgress.countCorrectBySelect > 0 || 
-                          problemProgress.countCorrectByInput > 0;
+          // 新しい仕様：countCorrectBySelectとcountCorrectByInputに基づいて色分け
+          const isCorrectBySelect = problemProgress.countCorrectBySelect > 0;
+          const isCorrectByInput = problemProgress.countCorrectByInput > 0;
+          
+          // 総合的な解決状態（条件は前と同じだが、色分けには使わない）
+          const isSolved = problemProgress.isCorrect || isCorrectBySelect || isCorrectByInput;
+          
+          // クラス名の決定
+          let itemClass = '';
+          if (isCorrectBySelect) {
+            itemClass = 'solved-by-select';
+          } else if (isCorrectByInput) {
+            itemClass = 'solved-by-input';
+          }
           
           const hasQuestionHistory = this.checkQuestionHistory(problem.id);
           
@@ -315,7 +326,7 @@ class BookkeepingApp {
             `<span class="check-mark" title="解答済み">✓</span>` : '';
           
           return `
-            <li class="problem-item ${isSolved ? 'solved' : ''}" data-id="${problem.id}">
+            <li class="problem-item ${itemClass}" data-id="${problem.id}">
               ${problem.title || `${problem.category} #${problem.id}`}
               <div class="icons">
                 ${checkMark}
