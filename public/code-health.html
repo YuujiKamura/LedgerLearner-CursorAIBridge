@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>コード健全性チェッカー</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    
+    header {
+      background-color: #3498db;
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+    
+    .description {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      text-align: center;
+    }
+    
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      gap: 1.5rem;
+      padding: 0 1.5rem;
+    }
+    
+    .feature-card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      flex: 1 1 300px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .feature-card h3 {
+      color: #3498db;
+      margin-top: 0;
+    }
+    
+    #code-health-report {
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      background-color: #2c3e50;
+      color: white;
+      margin-top: 2rem;
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1a202c;
+        color: #e2e8f0;
+      }
+      
+      .feature-card {
+        background-color: #2d3748;
+        color: #e2e8f0;
+      }
+      
+      .feature-card h3 {
+        color: #63b3ed;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>コード健全性チェッカー</h1>
+  </header>
+  
+  <div class="description">
+    <p>プロジェクトのコード品質を自動的に分析し、問題を検出するツールです。CSSの重複定義、未使用コード、アクセシビリティ問題などを見つけることができます。</p>
+  </div>
+  
+  <div class="features">
+    <div class="feature-card">
+      <h3>CSS分析</h3>
+      <p>重複セレクタ、未使用ルール、!importantの過剰使用を検出します。</p>
+    </div>
+    
+    <div class="feature-card">
+      <h3>JavaScript分析</h3>
+      <p>重複コード、未使用変数/関数、コメントアウトされたコードを見つけます。</p>
+    </div>
+    
+    <div class="feature-card">
+      <h3>HTML分析</h3>
+      <p>アクセシビリティの問題、インラインスタイルの過剰使用を検出します。</p>
+    </div>
+  </div>
+  
+  <div id="code-health-report"></div>
+  
+  <footer>
+    <p>© 2023 コード健全性チェッカープロジェクト</p>
+  </footer>
+  
+  <!-- スクリプトの読み込み -->
+  <script src="js/code-health-checker.js"></script>
+  <script src="js/code-health-ui.js"></script>
+</body>
+</html> 
