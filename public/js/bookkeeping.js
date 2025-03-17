@@ -901,9 +901,9 @@ class BookkeepingApp {
               </div>
             </div>
             
-            <div class="action-buttons" style="display: flex; justify-content: center; gap: 10px; margin: 15px 0; padding: 12px; background-color: #f0f0f0; border-radius: 6px;">
-              <button id="check-answer-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">解答する</button>
-              <button id="ask-question-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
+            <div class="action-buttons" style="display: flex; flex-direction: column; gap: 10px; margin: 15px 0; padding: 12px; background-color: #f0f0f0; border-radius: 6px;">
+              <button id="check-answer-btn" style="width: 100%; height: 40px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">解答する</button>
+              <button id="ask-question-btn" style="width: 100%; height: 40px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">質問する</button>
             </div>
             
             <div class="answer-result" style="display: none;"></div>
@@ -1173,7 +1173,9 @@ class BookkeepingApp {
         explanationContainer.innerHTML = `
           <h4>解説</h4>
           <p>${problem.explanation}</p>
-          <button id="ask-about-explanation-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
+          <div style="margin-top: 10px; padding: 10px; background-color: #f0f0f0; border-radius: 6px;">
+            <button id="ask-about-explanation-btn" style="width: 100%; height: 40px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">質問する</button>
+          </div>
         `;
         
         // 解説についての質問ボタンのイベントリスナー
@@ -1194,7 +1196,9 @@ class BookkeepingApp {
         explanationContainer.innerHTML = `
           <h4>正解${methodText}</h4>
           <p>借方：${correctDebit}<br>貸方：${correctCredit}</p>
-          <button id="ask-about-explanation-btn" style="padding: 10px 16px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif;">質問する</button>
+          <div style="margin-top: 10px; padding: 10px; background-color: #f0f0f0; border-radius: 6px;">
+            <button id="ask-about-explanation-btn" style="width: 100%; height: 40px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">質問する</button>
+          </div>
         `;
         
         // 解説についての質問ボタンのイベントリスナー
