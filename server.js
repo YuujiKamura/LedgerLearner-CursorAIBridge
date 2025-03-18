@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs').promises;
+const fsStandard = require('fs'); // 標準fsモジュールを追加
 const readline = require('readline');
 const { execSync } = require('child_process');
 require('dotenv').config();
@@ -238,22 +239,25 @@ app.get('/api/problems', async (req, res) => {
 // 進捗データを読み込む関数
 function loadProgressData() {
   try {
-    if (!fs.existsSync(progressDataPath)) {
-      // DEBUGモードのみ詳細ログを表示
-      if (DEBUG_MODE) {
-        console.log('進捗データファイルが存在しません。新規作成します:', progressDataPath);
-      }
+    console.log('進捗データパス:', progressDataPath);
+    
+    if (!fsStandard.existsSync(progressDataPath)) {
+      console.log('進捗データファイルが存在しません。新規作成します:', progressDataPath);
       saveProgressData({});
       return {};
     }
     
-    const data = fs.readFileSync(progressDataPath, 'utf8');
-    // DEBUGモードのみ詳細ログを表示
-    if (DEBUG_MODE) {
-      console.log('進捗データを読み込みました:', progressDataPath);
-      console.log('ファイルサイズ:', Buffer.from(data).length, 'バイト');
+    const data = fsStandard.readFileSync(progressDataPath, 'utf8');
+    console.log('進捗データを読み込みました。データサイズ:', Buffer.from(data).length, 'バイト');
+    
+    try {
+      const parsed = JSON.parse(data);
+      console.log('JSONパース成功。キー数:', Object.keys(parsed).length);
+      return parsed;
+    } catch (parseError) {
+      console.error('JSONパースエラー:', parseError);
+      return {};
     }
-    return JSON.parse(data);
   } catch (error) {
     console.error('進捗データの読み込み中にエラーが発生しました:', error);
     return {};
@@ -263,7 +267,7 @@ function loadProgressData() {
 // 進捗データを保存する関数
 function saveProgressData(data) {
   try {
-    fs.writeFileSync(progressDataPath, JSON.stringify(data, null, 2), 'utf8');
+    fsStandard.writeFileSync(progressDataPath, JSON.stringify(data, null, 2), 'utf8');
     // DEBUGモードのみ詳細ログを表示
     if (DEBUG_MODE) {
       console.log('進捗データを保存しました:', progressDataPath);
