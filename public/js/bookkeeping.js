@@ -7,6 +7,11 @@ class BookkeepingApp {
     this.chatHistory = [];
     this.initialized = false;
     
+    // 進捗データのキャッシュ
+    this.progressCache = null;
+    this.progressCacheTime = null;
+    this.progressCacheTimeout = 3000; // ミリ秒単位でのキャッシュ有効期間
+    
     // 初期化処理
     this.init();
   }
@@ -25,8 +30,14 @@ class BookkeepingApp {
       // APIからデータを取得
       console.log('データ読み込み開始...');
       
-      // 問題データを優先的に読み込む
-      await this.loadProblems();
+      // 問題データと進捗データを並行して読み込み
+      const [problemsPromise, progressPromise] = [
+        this.loadProblems(),
+        this.preloadProgress()
+      ];
+      
+      // 問題データを優先的に処理
+      await problemsPromise;
       
       // チャット履歴を読み込む（非同期だが完了を待たない）
       this.loadChatHistory().catch(err => {
@@ -35,6 +46,9 @@ class BookkeepingApp {
       
       // データのポーリング設定
       this.setupProblemPolling();
+      
+      // 進捗データの読み込み完了を待つ
+      await progressPromise;
       
       this.initialized = true;
       console.log('BookkeepingApp初期化完了');
@@ -697,22 +711,171 @@ class BookkeepingApp {
     document.head.appendChild(styleElement);
   }
 
+  // 進捗データを事前読み込み
+  async preloadProgress() {
+    console.log('進捗データの事前読み込みを開始...');
+    try {
+      // 進捗データを一度取得してキャッシュに保存
+      await this.getProgress();
+      console.log('進捗データの事前読み込みが完了しました');
+    } catch (error) {
+      console.error('進捗データの事前読み込みに失敗しました:', error);
+    }
+  }
+  
   // 進捗データを取得（サーバーから）
   async getProgress() {
-    console.log('getProgress called');
+    // リクエスト管理のための静的プロパティ（複数の同時リクエストを1つにまとめる）
+    if (!BookkeepingApp.progressRequest) {
+      // 現在時刻を取得
+      const now = Date.now();
+      
+      // キャッシュが有効な場合はキャッシュから返却
+      if (this.progressCache && this.progressCacheTime && 
+          (now - this.progressCacheTime < this.progressCacheTimeout)) {
+        console.log('進捗データをキャッシュから返却します');
+        return this.progressCache;
+      }
+      
+      // 新しいリクエストを作成
+      console.log('進捗データのリクエストを開始します');
+      BookkeepingApp.progressRequest = (async () => {
+        try {
+          // サーバーからデータを取得
+          console.log('進捗データをサーバーから取得します');
+          const response = await fetch('/api/progress');
+          if (!response.ok) {
+            throw new Error(`サーバーからの応答エラー: ${response.status}`);
+          }
+          
+          const progressData = await response.json();
+          console.log('Progress data from server:', progressData);
+          
+          // キャッシュを更新
+          this.progressCache = progressData;
+          this.progressCacheTime = now;
+          
+          return progressData;
+        } catch (error) {
+          console.error('進捗データの読み込みに失敗しました:', error);
+          return {}; // エラー時は空のオブジェクトを返す
+        } finally {
+          // リクエスト完了後、静的プロパティをクリア
+          BookkeepingApp.progressRequest = null;
+        }
+      })();
+    } else {
+      console.log('進捗データの別リクエストが進行中のため、そのリクエストを共有します');
+    }
+    
+    // 進行中のリクエストの結果を返す
+    return BookkeepingApp.progressRequest;
+  }
+  
+  // 進捗データの強制更新（キャッシュをクリアして取得）
+  async refreshProgress() {
+    // キャッシュをクリア
+    this.progressCache = null;
+    this.progressCacheTime = null;
+    
+    // 進行中のリクエストをキャンセル
+    BookkeepingApp.progressRequest = null;
+    
+    // 新しいデータを取得
+    return await this.getProgress();
+  }
+  
+  // 進捗データを保存（サーバーに）
+  async saveProgress(data) {
     try {
-      // サーバーからデータを取得
-      const response = await fetch('/api/progress');
+      const response = await fetch('/api/progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
       if (!response.ok) {
         throw new Error(`サーバーからの応答エラー: ${response.status}`);
       }
       
-      const progressData = await response.json();
-      console.log('Progress data from server:', progressData);
-      return progressData;
+      // 保存に成功したら、キャッシュも更新
+      const currentData = await this.refreshProgress();
+      const updatedData = { ...currentData, ...data };
+      this.progressCache = updatedData;
+      this.progressCacheTime = Date.now();
+      
+      return true;
     } catch (error) {
-      console.error('進捗データの読み込みに失敗しました:', error);
-      return {}; // エラー時は空のオブジェクトを返す
+      console.error('進捗データの保存に失敗しました:', error);
+      return false;
+    }
+  }
+
+  // 問題の進捗を保存（サーバーへ）
+  async saveProblemProgress(problemId, isCorrect, answerMethod) {
+    console.log('saveProblemProgress called:', { problemId, isCorrect, answerMethod });
+    
+    try {
+      // 現在の進捗データを取得（キャッシュ使用）
+      const progress = await this.getProgress();
+      console.log('Current progress:', progress);
+      
+      // 問題IDを文字列として扱う
+      const id = problemId.toString();
+      
+      // 問題の記録を初期化または取得
+      if (!progress[id]) {
+        progress[id] = {
+          isCorrect: false,
+          countCorrectBySelect: 0,      // 選択肢で正解した回数
+          countCorrectByInput: 0,       // 入力のみで正解した回数
+          lastAttempt: null,
+          answerMethod: null
+        };
+      }
+      
+      // 最終挑戦日時を更新
+      progress[id].lastAttempt = new Date().toISOString();
+      
+      // 回答方法を記録
+      progress[id].answerMethod = answerMethod;
+      
+      // 正解の場合
+      if (isCorrect) {
+        // 正解フラグを設定
+        progress[id].isCorrect = true;
+        
+        // 入力のみの場合、入力正解回数をカウントアップ
+        if (answerMethod && answerMethod.isInputOnly) {
+          progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
+          console.log(`問題ID ${id}: countCorrectByInput を ${progress[id].countCorrectByInput}に増加`);
+        } 
+        // 選択肢を使用した場合（片方でも選択肢を使っていれば）
+        else {
+          progress[id].countCorrectBySelect = (progress[id].countCorrectBySelect || 0) + 1;
+          console.log(`問題ID ${id}: countCorrectBySelect を ${progress[id].countCorrectBySelect}に増加`);
+        }
+      }
+      
+      // 新しいsaveProgressメソッドを使用してデータを保存
+      const saveResult = await this.saveProgress(progress);
+      
+      if (saveResult) {
+        console.log('Progress updated successfully');
+      } else {
+        console.error('Progress update failed');
+      }
+    } catch (error) {
+      console.error('進捗データの保存に失敗しました:', error);
+      // エラー発生時にも現在のデータを表示（デバッグ用）
+      try {
+        const currentData = await this.refreshProgress();
+        console.log('最新の進捗データ:', currentData);
+      } catch (e) {
+        console.error('現在の進捗データの取得にも失敗:', e);
+      }
     }
   }
 
@@ -1213,7 +1376,7 @@ class BookkeepingApp {
       }
       
       // 進捗を保存（入力方法の情報を追加）
-      this.saveProgress(problem.id, true, answerMethod);
+      this.saveProblemProgress(problem.id, isCorrect, answerMethod);
       
       // 問題リストを更新（進捗表示のため）
       this.updateProblemList();
@@ -1222,7 +1385,7 @@ class BookkeepingApp {
         <div class="incorrect">✗ 不正解です。もう一度試してください。</div>
       `;
       // 進捗を保存（不正解）
-      this.saveProgress(problem.id, false, answerMethod);
+      this.saveProblemProgress(problem.id, false, answerMethod);
     }
   }
   
@@ -1413,81 +1576,6 @@ class BookkeepingApp {
       this.displayProblem(nextUnsolvedProblem.id);
     } else {
       alert('未修了の問題はありません。');
-    }
-  }
-
-  // 進捗を保存（サーバーへ）
-  async saveProgress(problemId, isCorrect, answerMethod) {
-    console.log('saveProgress called:', { problemId, isCorrect, answerMethod });
-    
-    try {
-      // 現在の進捗データを取得
-      const progress = await this.getProgress();
-      console.log('Current progress:', progress);
-      
-      // 問題IDを文字列として扱う
-      const id = problemId.toString();
-      
-      // 問題の記録を初期化または取得
-      if (!progress[id]) {
-        progress[id] = {
-          isCorrect: false,
-          countCorrectBySelect: 0,      // 選択肢で正解した回数
-          countCorrectByInput: 0,       // 入力のみで正解した回数
-          lastAttempt: null,
-          answerMethod: null
-        };
-      }
-      
-      // 最終挑戦日時を更新
-      progress[id].lastAttempt = new Date().toISOString();
-      
-      // 回答方法を記録
-      progress[id].answerMethod = answerMethod;
-      
-      // 正解の場合
-      if (isCorrect) {
-        // 正解フラグを設定
-        progress[id].isCorrect = true;
-        
-        // 入力のみの場合、入力正解回数をカウントアップ
-        if (answerMethod && answerMethod.isInputOnly) {
-          progress[id].countCorrectByInput = (progress[id].countCorrectByInput || 0) + 1;
-          console.log(`問題ID ${id}: countCorrectByInput を ${progress[id].countCorrectByInput}に増加`);
-        } 
-        // 選択肢を使用した場合（片方でも選択肢を使っていれば）
-        else {
-          progress[id].countCorrectBySelect = (progress[id].countCorrectBySelect || 0) + 1;
-          console.log(`問題ID ${id}: countCorrectBySelect を ${progress[id].countCorrectBySelect}に増加`);
-        }
-      }
-      
-      // サーバーに進捗データを保存
-      const response = await fetch('/api/progress', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(progress)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`サーバーからのエラー応答: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('Progress saved to server:', result);
-      
-      console.log('Progress updated');
-    } catch (error) {
-      console.error('進捗データの保存に失敗しました:', error);
-      // エラー発生時にも現在のデータを表示（デバッグ用）
-      try {
-        const currentData = await this.getProgress();
-        console.log('最新の進捗データ:', currentData);
-      } catch (e) {
-        console.error('現在の進捗データの取得にも失敗:', e);
-      }
     }
   }
 
