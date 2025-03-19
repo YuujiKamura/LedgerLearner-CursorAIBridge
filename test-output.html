@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>簿記アプリのテスト実行</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      line-height: 1.6;
+    }
+    
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #4CAF50;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-panel {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    #test-results {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    .btn:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>簿記アプリの進捗カウント機能テスト</h1>
+    
+    <div class="test-panel">
+      <h2>テスト実行</h2>
+      <p>
+        このページでは、簿記アプリの進捗カウント機能をテストします。
+        「テスト実行」ボタンをクリックすると、以下のテストが実行されます：
+      </p>
+      <ul>
+        <li>選択肢で解いた場合のカウント</li>
+        <li>入力のみで解いた場合のカウント</li>
+        <li>混合入力（片方だけ入力）の場合のカウント</li>
+      </ul>
+      <button id="run-test-btn" class="btn">テスト実行</button>
+    </div>
+    
+    <h2>テスト結果</h2>
+    <div id="test-results">テスト結果がここに表示されます...</div>
+  </div>
+  
+  <!-- 簿記アプリのコアJSファイルを読み込み -->
+  <script src="js/bookkeeping.js"></script>
+  <!-- テストスクリプトを読み込み -->
+  <script src="js/tests.js"></script>
+  
+  <script>
+    // テスト結果表示用のコンソール出力をカスタマイズ
+    (function() {
+      const resultElement = document.getElementById('test-results');
+      const originalConsoleLog = console.log;
+      const originalConsoleError = console.error;
+      const originalConsoleAssert = console.assert;
+      
+      // コンソール出力をキャプチャしてテスト結果に表示
+      console.log = function() {
+        originalConsoleLog.apply(console, arguments);
+        const message = Array.from(arguments).join(' ');
+        resultElement.innerHTML += message + '\n';
+        resultElement.scrollTop = resultElement.scrollHeight;
+      };
+      
+      console.error = function() {
+        originalConsoleError.apply(console, arguments);
+        const message = Array.from(arguments).join(' ');
+        resultElement.innerHTML += `<span style="color: red;">${message}</span>\n`;
+        resultElement.scrollTop = resultElement.scrollHeight;
+      };
+      
+      console.assert = function(condition, message) {
+        if (!condition) {
+          originalConsoleAssert.apply(console, arguments);
+          resultElement.innerHTML += `<span style="color: red;">Assertion Failed: ${message}</span>\n`;
+          resultElement.scrollTop = resultElement.scrollHeight;
+        } else {
+          resultElement.innerHTML += `<span style="color: green;">Assertion passed</span>\n`;
+          resultElement.scrollTop = resultElement.scrollHeight;
+        }
+      };
+    })();
+    
+    // ボタンイベント設定
+    document.getElementById('run-test-btn').addEventListener('click', function() {
+      document.getElementById('test-results').innerHTML = '';
+      runBookkeepingTests();
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,22 @@
+{
+  "0030001": {
+    "isCorrect": true,
+    "lastAttempt": "2023-06-01T12:00:00.000Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    }
+  },
+  "0030002": {
+    "isCorrect": true,
+    "countCorrectBySelect": 0,
+    "countCorrectByInput": 1,
+    "lastAttempt": "2023-06-02T12:00:00.000Z",
+    "answerMethod": {
+      "debitByInput": true,
+      "creditByInput": true,
+      "isInputOnly": true
+    }
+  }
+}

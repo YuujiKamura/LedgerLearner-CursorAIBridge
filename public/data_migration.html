@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>進捗データ移行ツール</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    button { padding: 10px 20px; margin: 10px 0; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>進捗データ移行ツール</h1>
+  <p>このツールはlocalStorageの進捗データをサーバーに移行します。</p>
+  
+  <button id="migrate">データを移行する</button>
+  <div id="status"></div>
+  
+  <script>
+    document.getElementById('migrate').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      status.innerHTML = '<p>移行を開始します...</p>';
+      
+      try {
+        // localStorageから進捗データを取得
+        const progressDataRaw = localStorage.getItem('bookkeepingProgress');
+        if (!progressDataRaw) {
+          status.innerHTML += '<p>localStorageに進捗データが見つかりませんでした。</p>';
+          return;
+        }
+        
+        // JSONとして解析
+        const progressData = JSON.parse(progressDataRaw);
+        status.innerHTML += `<p>localStorageから${Object.keys(progressData).length}件の進捗データを読み込みました。</p>`;
+        
+        // サーバーにデータを送信
+        const response = await fetch('/api/progress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(progressData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`サーバーエラー: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        status.innerHTML += `<p>データ移行が完了しました！</p>`;
+        status.innerHTML += `<p>サーバー応答: ${result.message}</p>`;
+        status.innerHTML += `<pre>${JSON.stringify(progressData, null, 2)}</pre>`;
+        
+        // 移行完了後にフラグを設定
+        localStorage.setItem('progressMigrated', 'true');
+      } catch (error) {
+        status.innerHTML += `<p>エラーが発生しました: ${error.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html> 

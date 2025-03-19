@@ -1,0 +1,278 @@
+{
+  "0030101": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T07:05:09.721Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectByInput": 8,
+    "countCorrectBySelect": 17
+  },
+  "0030201": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:45:50.857Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030301": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:58:06.967Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030202": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:47:14.477Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030102": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:38:43.930Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectByInput": 2,
+    "countCorrectBySelect": 2
+  },
+  "0030103": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:39:29.012Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030104": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:39:54.511Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030501": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T07:46:24.926Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    }
+  },
+  "0030203": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:50:48.762Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030204": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:53:25.000Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030205": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:55:42.470Z",
+    "answerMethod": {
+      "debitByInput": true,
+      "creditByInput": true,
+      "isInputOnly": true
+    },
+    "countCorrectByInput": 2
+  },
+  "0030401": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T00:45:39.791Z"
+  },
+  "0030402": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T00:46:59.792Z"
+  },
+  "0030403": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T01:15:49.505Z"
+  },
+  "0030302": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:59:45.599Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030303": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T07:24:54.049Z",
+    "answerMethod": {
+      "debitByInput": true,
+      "creditByInput": true,
+      "isInputOnly": true
+    }
+  },
+  "0030304": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T07:43:30.632Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    }
+  },
+  "0030502": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T01:31:49.192Z"
+  },
+  "0030503": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T01:36:35.723Z"
+  },
+  "0030206": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:56:16.159Z",
+    "answerMethod": {
+      "debitByInput": true,
+      "creditByInput": true,
+      "isInputOnly": true
+    },
+    "countCorrectByInput": 2
+  },
+  "0030207": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:57:21.619Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    },
+    "countCorrectBySelect": 2
+  },
+  "0030105": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T06:42:22.969Z",
+    "answerMethod": {
+      "debitByInput": true,
+      "creditByInput": true,
+      "isInputOnly": true
+    },
+    "countCorrectByInput": 2
+  },
+  "0030504": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T02:15:00.251Z"
+  },
+  "0030601": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T02:27:40.280Z"
+  },
+  "0030701": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T02:40:40.001Z"
+  },
+  "0030702": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T02:57:34.300Z"
+  },
+  "0030703": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:00:51.106Z"
+  },
+  "0030704": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:03:06.473Z"
+  },
+  "0030801": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:03:31.203Z"
+  },
+  "0030802": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:04:30.289Z"
+  },
+  "0030001": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-17T10:58:15.057Z",
+    "answerMethod": {
+      "debitByInput": false,
+      "creditByInput": false,
+      "isInputOnly": false
+    }
+  },
+  "0030002": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:18:47.616Z"
+  },
+  "0030003": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:34:07.166Z"
+  },
+  "0030004": {
+    "isCorrect": true,
+    "attemptCount": 1,
+    "lastAttempt": "2025-03-15T03:36:00.938Z"
+  }
+}

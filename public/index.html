@@ -426,13 +426,48 @@
             height: 100%;
         }
         
-        .problem-list {
+        .left-container {
             flex: 0 0 250px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             overflow: auto;
             height: 100%;
             max-height: 700px;
+        }
+        
+        .progress-display {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .progress-item {
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar-container {
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .select-type {
+            background-color: #4CAF50;
+        }
+        
+        .input-type {
+            background-color: #2196F3;
+        }
+        
+        .problem-list {
+            padding: 15px;
         }
         
         .problem-detail-container {
@@ -551,13 +586,16 @@
             </div>
             
             <!-- 簿記問題タブ -->
-            <div id="bookkeeping-tab" class="tab-panel active">
+            <div id="bookkeeping-tab" class="tab-pane active">
                 <h3>簿記3級仕訳問題</h3>
                 <div class="bookkeeping-container">
-                    <div class="problem-list">
-                        <!-- 問題リストが JavaScript によって表示されます -->
-                        <p>問題を読み込み中...</p>
+                    <div class="left-container">
+                        <div class="problem-list">
+                            <!-- 問題リストが JavaScript によって表示されます -->
+                            <p>問題を読み込み中...</p>
+                        </div>
                     </div>
+                    
                     <div class="problem-detail-container">
                         <div class="navigation-container">
                             <!-- ナビゲーションボタンが JavaScript によって表示されます -->

@@ -1,22 +1,68 @@
 /* 簿記問題タブのスタイル */
 .bookkeeping-container {
     display: grid;
-    grid-template-columns: 1fr 2fr;
-    grid-template-areas:
-        "list view"
-        "list explanation";
+    grid-template-columns: minmax(250px, 300px) 1fr;
     gap: 20px;
+}
+
+/* 左側コンテナ */
+.left-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* 進捗表示部分 */
+.progress-display {
+    flex: 0 0 auto;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.progress-item {
+    margin-bottom: 10px;
+}
+
+.progress-item:last-child {
+    margin-bottom: 0;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.progress-bar.select-type {
+    background-color: #28a745;  /* 緑色 */
+}
+
+.progress-bar.input-type {
+    background-color: #007bff;  /* 青色 */
 }
 
 .problem-list {
     flex: 1;
+    overflow-y: auto;
     min-width: 250px;
     max-width: 300px;
-    padding: 0;
-    margin: 0;
-    border-right: none;
-    max-height: 800px;
-    overflow-y: auto;
 }
 
 .problem-view {
@@ -131,22 +177,6 @@
     border-radius: 4px;
 }
 
-.progress-bar {
-    height: 8px;
-    background-color: #28a745;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.progress-bar-container {
-    width: 100%;
-    height: 8px;
-    background-color: #e9ecef;
-    border-radius: 4px;
-    margin: 10px 0;
-    overflow: hidden;
-}
-
 .progress-info {
     display: flex;
     flex-direction: column;
@@ -162,20 +192,6 @@
 
 .progress-row {
     margin-bottom: 10px;
-}
-
-.progress-label {
-    font-size: 14px;
-    margin-bottom: 0px;
-    text-align: center;
-}
-
-.select-progress .progress-bar {
-    background-color: #17a2b8; /* 青系の色 */
-}
-
-.input-progress .progress-bar {
-    background-color: #ffc107; /* 黄色系の色 */
 }
 
 /* ダークテーマ対応 */
@@ -222,46 +238,32 @@ body.dark-theme .incorrect {
     color: #f5b7b7;
 }
 
+/* ダークテーマ対応 */
+body.dark-theme .progress-display {
+    background: #2c3e50;
+}
+
+body.dark-theme .progress-label {
+    color: #a0aec0;
+}
+
 body.dark-theme .progress-bar-container {
-    background-color: #34495e;
-}
-
-body.dark-theme .progress-bar {
-    background-color: #2ecc71;
-}
-
-body.dark-theme .select-progress .progress-bar {
-    background-color: #3498db;
-}
-
-body.dark-theme .input-progress .progress-bar {
-    background-color: #f39c12;
-}
-
-body.dark-theme .problem-header-block {
-    background-color: #2c3e50;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
-
-body.dark-theme .problem-list-block {
-    background-color: #2c3e50;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    background-color: #4a5568;
 }
 
 /* レスポンシブデザイン */
 @media (max-width: 768px) {
     .bookkeeping-container {
         grid-template-columns: 1fr;
-        grid-template-areas:
-            "list"
-            "view"
-            "explanation";
+    }
+    
+    .left-container {
+        height: auto;
+        position: static;
     }
     
     .problem-list {
-        flex: 0 0 auto;
         max-height: 300px;
-        max-width: 100%;
     }
 }
 
@@ -385,14 +387,7 @@ body.dark-theme .btn-secondary:hover {
     background-color: #f8f9fa;
     border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin-top: 15px;
-    max-height: 400px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #ccc #f8f9fa;
     border: 1px solid #ddd;
-    margin-bottom: 15px;
-    overflow: hidden;
     width: 100%;
 }
 
